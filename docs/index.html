@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Solver-Aware Precision Allocation — Visual Overview</title>
+  <style>
+    :root{
+      --bg1:#071021; --bg2:#08233a; --accent:#6be4ff; --accent2:#a26bff;
+      --muted:#9db0c7; font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;
+    }
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:#eaf6ff}
+    .container{max-width:1100px;margin:3rem auto;padding:2rem;border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));box-shadow:0 10px 40px rgba(2,6,23,0.6)}
+    header{display:flex;gap:1rem;align-items:center}
+    h1{margin:0;font-weight:600;letter-spacing:-0.02em}
+    p.lead{color:var(--muted);margin-top:0.6rem;max-width:68ch}
+    .visual{display:grid;grid-template-columns:1fr 420px;gap:1.5rem;margin-top:1.6rem}
+    .panel{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:1rem;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+    .legend{color:var(--muted);font-size:0.95rem}
+    svg{width:100%;height:100%}
+    .footer{margin-top:1.4rem;color:var(--muted);font-size:0.9rem}
+    /* floating nodes */
+    .node{filter:drop-shadow(0 6px 20px rgba(10,14,26,0.6))}
+    .pulse{animation:pulse 3s ease-in-out infinite}
+    @keyframes pulse{
+      0%{transform:scale(1);opacity:0.95}
+      50%{transform:scale(1.05);opacity:1}
+      100%{transform:scale(1);opacity:0.95}
+    }
+    /* animate precision indicators */
+    .bar{transition:width 800ms cubic-bezier(.2,.9,.2,1),background 500ms}
+    .controls{display:flex;flex-direction:column;gap:0.6rem}
+    .slider{width:100%}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <defs>
+          <linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6be4ff"/><stop offset="1" stop-color="#a26bff"/></linearGradient>
+        </defs>
+        <rect width="24" height="24" rx="6" fill="url(#g)"></rect>
+        <path d="M6 15l4-8 4 8 4-6" stroke="#041428" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div>
+        <h1>Solver-Aware Precision Allocation</h1>
+        <p class="lead">An artistic and scientific preview: visualize how precision budget flows through a solver and where it matters most. Move sliders to see how reallocating bits changes "sensitivity" and final error impact.</p>
+      </div>
+    </header>
+
+    <div class="visual">
+      <div class="panel" style="min-height:320px;">
+        <svg viewBox="0 0 600 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Solver schematic and precision allocation">
+          <!-- Grid background -->
+          <defs>
+            <linearGradient id="lg" x1="0" x2="1"><stop offset="0" stop-color="#08233a"/><stop offset="1" stop-color="#071021"/></linearGradient>
+            <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" result="b"/></filter>
+          </defs>
+          <rect x="0" y="0" width="600" height="320" fill="url(#lg)"/>
+          <!-- solver blocks -->
+          <g transform="translate(40,40)" font-family="sans-serif" font-size="12" fill="#d9f6ff">
+            <g id="blockA" class="node pulse">
+              <rect x="0" y="0" width="120" height="56" rx="10" fill="#06334a"></rect>
+              <text x="12" y="20">Assembly</text>
+              <text x="12" y="38" fill="#9ad8ff" font-size="11">sensitivity: <tspan id="sensA">0.72</tspan></text>
+            </g>
+
+            <g id="blockB" transform="translate(160,0)" class="node">
+              <rect x="0" y="0" width="120" height="56" rx="10" fill="#07455f"></rect>
+              <text x="12" y="20">Preconditioner</text>
+              <text x="12" y="38" fill="#9ad8ff" font-size="11">sensitivity: <tspan id="sensB">0.41</tspan></text>
+            </g>
+
+            <g id="blockC" transform="translate(80,110)" class="node">
+              <rect x="0" y="0" width="160" height="64" rx="12" fill="#0b6ea1"></rect>
+              <text x="12" y="26">Iterative Solver</text>
+              <text x="12" y="46" fill="#cdeeff" font-size="11">sensitivity: <tspan id="sensC">1.00</tspan></text>
+            </g>
+
+            <!-- connectors -->
+            <path d="M120 28 L160 28" stroke="rgba(155,220,255,0.45)" stroke-width="2" stroke-linecap="round"/>
+            <path d="M220 28 L150 144" stroke="rgba(155,220,255,0.25)" stroke-width="2" stroke-linecap="round"/>
+            <path d="M40 56 L120 120" stroke="rgba(155,220,255,0.18)" stroke-width="2" stroke-linecap="round"/>
+
+            <!-- precision bars -->
+            <g transform="translate(360,10)">
+              <text x="0" y="12" fill="#dff8ff" style="font-weight:600">Precision budget</text>
+              <g transform="translate(0,18)">
+                <rect x="0" y="0" width="220" height="12" rx="6" fill="#042434"></rect>
+                <rect id="barA" class="bar" x="6" y="-6" width="40" height="24" rx="6" fill="#6be4ff"></rect>
+                <text x="6" y="28" fill="#9bd6e8" font-size="11">Assembly: <tspan id="bitsA">8</tspan> bits</text>
+              </g>
+              <g transform="translate(0,62)">
+                <rect x="0" y="0" width="220" height="12" rx="6" fill="#042434"></rect>
+                <rect id="barB" class="bar" x="6" y="-6" width="24" height="24" rx="6" fill="#a26bff"></rect>
+                <text x="6" y="28" fill="#9bd6e8" font-size="11">Preconditioner: <tspan id="bitsB">6</tspan> bits</text>
+              </g>
+              <g transform="translate(0,114)">
+                <rect x="0" y="0" width="220" height="12" rx="6" fill="#042434"></rect>
+                <rect id="barC" class="bar" x="6" y="-6" width="80" height="24" rx="6" fill="#56aaff"></rect>
+                <text x="6" y="28" fill="#9bd6e8" font-size="11">Iterative Solver: <tspan id="bitsC">16</tspan> bits</text>
+              </g>
+            </g>
+
+            <!-- final error badge -->
+            <g transform="translate(360,220)">
+              <rect x="0" y="0" rx="8" width="220" height="64" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.04)"/>
+              <text x="14" y="26" fill="#e6fbff" style="font-weight:700">Estimated final error</text>
+              <text id="finalError" x="14" y="46" fill="#9bd6e8" style="font-size:18px">1.2e-4</text>
+            </g>
+
+          </g>
+        </svg>
+      </div>
+
+      <aside class="panel">
+        <div class="controls">
+          <label class="legend">Reallocate bits (total budget fixed at 30 bits)</label>
+          <input id="sA" class="slider" type="range" min="1" max="24" value="8">
+          <input id="sB" class="slider" type="range" min="1" max="24" value="6">
+          <input id="sC" class="slider" type="range" min="1" max="24" value="16">
+          <small style="color:var(--muted)">Move sliders to reassign the bit budget. The visualization updates approximate sensitivities and a synthetic "final error" metric to show qualitative effects.</small>
+        </div>
+        <div style="height:14px"></div>
+        <div class="legend">Notes
+          <ul style="color:var(--muted)">
+            <li>This page is a conceptual visualization, not a numeric solver.</li>
+            <li>Sensitivity values are illustrative; real allocation uses error-propagation models.</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+
+    <div class="footer">
+      <strong>Explore</strong> — Add your solver model and a small script to compute sensitivities and the optimal allocation. This page can be adapted to fetch real measurements and present a guided allocation suggestion.
+    </div>
+  </div>
+
+  <script>
+    // Simple UI glue to simulate allocation changes; update bars and the synthetic error metric.
+    const sA = document.getElementById('sA'), sB = document.getElementById('sB'), sC = document.getElementById('sC');
+    const bitsA = document.getElementById('bitsA'), bitsB = document.getElementById('bitsB'), bitsC = document.getElementById('bitsC');
+    const barA = document.getElementById('barA'), barB = document.getElementById('barB'), barC = document.getElementById('barC');
+    const finalError = document.getElementById('finalError');
+    const sensA = document.getElementById('sensA'), sensB = document.getElementById('sensB'), sensC = document.getElementById('sensC');
+
+    function update() {
+      const a = +sA.value, b = +sB.value, c = +sC.value;
+      const total = a+b+c;
+      // map bits to widths (visual)
+      barA.style.width = Math.max(24, (a/30)*220) + 'px';
+      barB.style.width = Math.max(24, (b/30)*220) + 'px';
+      barC.style.width = Math.max(24, (c/30)*220) + 'px';
+      bitsA.textContent = a; bitsB.textContent = b; bitsC.textContent = c;
+
+      // synthetic sensitivity estimate: more bits -> lower impact; here we invert bits but scale by an illustrative factor
+      const sAval = (12 / a).toFixed(2); const sBval = (12 / b).toFixed(2); const sCval = (12 / c).toFixed(2);
+      sensA.textContent = sAval; sensB.textContent = sBval; sensC.textContent = sCval;
+
+      // synthetic final error: weighted harmonic-ish combination (purely illustrative)
+      const err = ( (sAval*0.7) + (sBval*0.4) + (sCval*1.1) ) / 300;
+      finalError.textContent = err.toExponential(2);
+    }
+
+    [sA,sB,sC].forEach(s=>s.addEventListener('input', update));
+    update();
+  </script>
+</body>
+</html>
