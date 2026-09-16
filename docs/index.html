@@ -3,168 +3,260 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Solver-Aware Precision Allocation — Visual Overview</title>
+  <title>Solver-Aware Precision Allocation — Visual & Artistic Demo</title>
+  <meta name="description" content="Solver-aware precision allocation for robust matrix completion — interactive demo and artistic visualization inspired by German design principles (Bauhaus-like).">
   <style>
+    /* Germanic / Bauhaus-inspired palette and geometry */
     :root{
-      --bg1:#071021; --bg2:#08233a; --accent:#6be4ff; --accent2:#a26bff;
-      --muted:#9db0c7; font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;
+      --bg:#0b0b0b;           /* deep black */
+      --panel:#0f1720;        /* dark slate */
+      --accent-red:#E31B23;   /* warm strong red */
+      --accent-yellow:#FFD400;/* bright yellow */
+      --muted:#BFC9D7;        /* soft scientific gray */
+      --glass: rgba(255,255,255,0.03);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Helvetica Neue", monospace;
+      --sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      --radius:12px;
     }
-    html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:#eaf6ff}
-    .container{max-width:1100px;margin:3rem auto;padding:2rem;border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));box-shadow:0 10px 40px rgba(2,6,23,0.6)}
-    header{display:flex;gap:1rem;align-items:center}
-    h1{margin:0;font-weight:600;letter-spacing:-0.02em}
-    p.lead{color:var(--muted);margin-top:0.6rem;max-width:68ch}
-    .visual{display:grid;grid-template-columns:1fr 420px;gap:1.5rem;margin-top:1.6rem}
-    .panel{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);padding:1rem;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
-    .legend{color:var(--muted);font-size:0.95rem}
-    svg{width:100%;height:100%}
-    .footer{margin-top:1.4rem;color:var(--muted);font-size:0.9rem}
-    /* floating nodes */
-    .node{filter:drop-shadow(0 6px 20px rgba(10,14,26,0.6))}
-    .pulse{animation:pulse 3s ease-in-out infinite}
-    @keyframes pulse{
-      0%{transform:scale(1);opacity:0.95}
-      50%{transform:scale(1.05);opacity:1}
-      100%{transform:scale(1);opacity:0.95}
-    }
-    /* animate precision indicators */
-    .bar{transition:width 800ms cubic-bezier(.2,.9,.2,1),background 500ms}
-    .controls{display:flex;flex-direction:column;gap:0.6rem}
-    .slider{width:100%}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#07121a);color:var(--muted);font-family:var(--sans);-webkit-font-smoothing:antialiased}
+    .wrap{max-width:1100px;margin:36px auto;padding:26px;border-radius:16px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);box-shadow:0 20px 60px rgba(0,0,0,0.6)}
+    header{display:flex;gap:18px;align-items:center}
+    .logo{width:74px;height:74px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--accent-red),var(--accent-yellow));color:#07121a;font-weight:800;font-size:18px;letter-spacing:1px}
+    h1{margin:0;color:#f6fbff;font-size:1.5rem;line-height:1.05}
+    .subtitle{color:var(--muted);margin-top:6px}
+    .meta{display:flex;gap:12px;align-items:center;margin-top:8px;color:var(--muted);font-size:0.9rem}
+    .meta .badge{padding:6px 8px;border-radius:8px;background:var(--glass);border:1px solid rgba(255,255,255,0.03);font-weight:600;color:#fff}
+    .layout{display:grid;grid-template-columns:1fr 420px;gap:18px;margin-top:18px}
+    .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+    /* Artistic header band */
+    .artband{height:96px;border-radius:10px;display:flex;align-items:center;gap:12px;padding:14px;background:
+      linear-gradient(90deg, rgba(227,27,35,0.08), rgba(255,212,0,0.05));overflow:hidden;border:1px solid rgba(255,255,255,0.02)}
+    .art-geom{width:140px;height:70px;position:relative}
+    .geom-square{position:absolute;width:62px;height:62px;left:8px;top:4px;background:var(--accent-yellow);transform:skewX(-6deg);opacity:0.95}
+    .geom-tri{position:absolute;right:8px;bottom:0;width:0;height:0;border-left:34px solid transparent;border-right:34px solid transparent;border-bottom:68px solid var(--accent-red);opacity:0.95}
+    /* matrix canvas */
+    canvas{width:100%;height:420px;border-radius:10px;display:block;background:linear-gradient(180deg,#071821,#02131a);border:1px solid rgba(255,255,255,0.02)}
+    .controls{display:flex;flex-direction:column;gap:10px}
+    .row{display:flex;gap:10px;align-items:center}
+    label{font-size:0.9rem;color:var(--muted)}
+    input[type=range]{width:100%}
+    .pill{display:inline-flex;gap:8px;align-items:center;padding:8px 10px;border-radius:999px;background:rgba(255,255,255,0.02);font-weight:700;color:#fff}
+    .stats{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
+    .stat{background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:120px}
+    .stat b{display:block;color:#fff;font-size:1.05rem}
+    .cta{margin-top:12px;display:flex;gap:8px}
+    .btn{padding:8px 12px;border-radius:10px;border:none;cursor:pointer;background:var(--accent-red);color:white;font-weight:700}
+    .btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+    footer{margin-top:18px;color:var(--muted);font-size:0.9rem;text-align:center}
+    /* typographic accent block for scientific text */
+    .paper-abstract{background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;font-size:0.95rem;color:var(--muted);line-height:1.45;border-left:4px solid var(--accent-yellow)}
+    /* small decorative grid lines */
+    .gridlines{position:absolute;left:0;top:0;right:0;bottom:0;pointer-events:none;opacity:0.03;background-image:
+      linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size:60px 60px,60px 60px;border-radius:10px;}
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="wrap">
     <header>
-      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <defs>
-          <linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#6be4ff"/><stop offset="1" stop-color="#a26bff"/></linearGradient>
-        </defs>
-        <rect width="24" height="24" rx="6" fill="url(#g)"></rect>
-        <path d="M6 15l4-8 4 8 4-6" stroke="#041428" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-      </svg>
+      <div class="logo" aria-hidden>SAP</div>
       <div>
         <h1>Solver-Aware Precision Allocation</h1>
-        <p class="lead">An artistic and scientific preview: visualize how precision budget flows through a solver and where it matters most. Move sliders to see how reallocating bits changes "sensitivity" and final error impact.</p>
+        <div class="subtitle">Among stored observations in robust matrix completion — artistic & scientific demo</div>
+        <div class="meta">
+          <div class="badge">N. Sahraneshinsamani et al.</div>
+          <div class="badge">Caltrans PeMS • 170 × 4032</div>
+        </div>
       </div>
     </header>
 
-    <div class="visual">
-      <div class="panel" style="min-height:320px;">
-        <svg viewBox="0 0 600 320" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Solver schematic and precision allocation">
-          <!-- Grid background -->
-          <defs>
-            <linearGradient id="lg" x1="0" x2="1"><stop offset="0" stop-color="#08233a"/><stop offset="1" stop-color="#071021"/></linearGradient>
-            <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" result="b"/></filter>
-          </defs>
-          <rect x="0" y="0" width="600" height="320" fill="url(#lg)"/>
-          <!-- solver blocks -->
-          <g transform="translate(40,40)" font-family="sans-serif" font-size="12" fill="#d9f6ff">
-            <g id="blockA" class="node pulse">
-              <rect x="0" y="0" width="120" height="56" rx="10" fill="#06334a"></rect>
-              <text x="12" y="20">Assembly</text>
-              <text x="12" y="38" fill="#9ad8ff" font-size="11">sensitivity: <tspan id="sensA">0.72</tspan></text>
-            </g>
+    <div style="margin-top:14px" class="artband panel">
+      <div class="art-geom" aria-hidden>
+        <div class="geom-square"></div>
+        <div class="geom-tri"></div>
+        <div class="gridlines"></div>
+      </div>
+      <div style="flex:1">
+        <div style="color:var(--muted);font-size:0.95rem">
+          Precision allocation blends numerical sensitivity with compact storage: protect a fraction of observations in FP32 while compressing the rest to FP8/FP4/INT8, guided by solver-aware sensitivity scores. This demo visualizes allocation masks, active bits, and an estimated penalty metric in an expressive, geometric layout.
+        </div>
+      </div>
+      <div style="width:220px;text-align:right">
+        <div style="font-size:0.9rem;color:var(--muted)">Quick take</div>
+        <div style="font-weight:800;color:#fff;font-size:1.05rem">Protect 30% in FP8 → penalty ≈ 1.000</div>
+      </div>
+    </div>
 
-            <g id="blockB" transform="translate(160,0)" class="node">
-              <rect x="0" y="0" width="120" height="56" rx="10" fill="#07455f"></rect>
-              <text x="12" y="20">Preconditioner</text>
-              <text x="12" y="38" fill="#9ad8ff" font-size="11">sensitivity: <tspan id="sensB">0.41</tspan></text>
-            </g>
+    <div class="layout">
+      <div class="panel">
+        <div style="display:flex;gap:12px;align-items:flex-start">
+          <div style="flex:1">
+            <div class="paper-abstract">
+              <strong>Abstract</strong>
+              <div style="margin-top:8px;color:var(--muted);font-size:0.95rem">
+                In robust matrix completion at scale, mixed precision plays two distinct roles: the format used to store observed entries, and the arithmetic precision of the solver. We decouple these effects for an IRLS solver on the Stiefel manifold. Protect a small fraction in FP32, compress the bulk, and allocate bits by gradient sensitivity (evaluated in FP64).
+              </div>
+            </div>
 
-            <g id="blockC" transform="translate(80,110)" class="node">
-              <rect x="0" y="0" width="160" height="64" rx="12" fill="#0b6ea1"></rect>
-              <text x="12" y="26">Iterative Solver</text>
-              <text x="12" y="46" fill="#cdeeff" font-size="11">sensitivity: <tspan id="sensC">1.00</tspan></text>
-            </g>
-
-            <!-- connectors -->
-            <path d="M120 28 L160 28" stroke="rgba(155,220,255,0.45)" stroke-width="2" stroke-linecap="round"/>
-            <path d="M220 28 L150 144" stroke="rgba(155,220,255,0.25)" stroke-width="2" stroke-linecap="round"/>
-            <path d="M40 56 L120 120" stroke="rgba(155,220,255,0.18)" stroke-width="2" stroke-linecap="round"/>
-
-            <!-- precision bars -->
-            <g transform="translate(360,10)">
-              <text x="0" y="12" fill="#dff8ff" style="font-weight:600">Precision budget</text>
-              <g transform="translate(0,18)">
-                <rect x="0" y="0" width="220" height="12" rx="6" fill="#042434"></rect>
-                <rect id="barA" class="bar" x="6" y="-6" width="40" height="24" rx="6" fill="#6be4ff"></rect>
-                <text x="6" y="28" fill="#9bd6e8" font-size="11">Assembly: <tspan id="bitsA">8</tspan> bits</text>
-              </g>
-              <g transform="translate(0,62)">
-                <rect x="0" y="0" width="220" height="12" rx="6" fill="#042434"></rect>
-                <rect id="barB" class="bar" x="6" y="-6" width="24" height="24" rx="6" fill="#a26bff"></rect>
-                <text x="6" y="28" fill="#9bd6e8" font-size="11">Preconditioner: <tspan id="bitsB">6</tspan> bits</text>
-              </g>
-              <g transform="translate(0,114)">
-                <rect x="0" y="0" width="220" height="12" rx="6" fill="#042434"></rect>
-                <rect id="barC" class="bar" x="6" y="-6" width="80" height="24" rx="6" fill="#56aaff"></rect>
-                <text x="6" y="28" fill="#9bd6e8" font-size="11">Iterative Solver: <tspan id="bitsC">16</tspan> bits</text>
-              </g>
-            </g>
-
-            <!-- final error badge -->
-            <g transform="translate(360,220)">
-              <rect x="0" y="0" rx="8" width="220" height="64" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.04)"/>
-              <text x="14" y="26" fill="#e6fbff" style="font-weight:700">Estimated final error</text>
-              <text id="finalError" x="14" y="46" fill="#9bd6e8" style="font-size:18px">1.2e-4</text>
-            </g>
-
-          </g>
-        </svg>
+            <div style="margin-top:12px">
+              <canvas id="heat" width="860" height="420"></canvas>
+            </div>
+          </div>
+        </div>
       </div>
 
       <aside class="panel">
         <div class="controls">
-          <label class="legend">Reallocate bits (total budget fixed at 30 bits)</label>
-          <input id="sA" class="slider" type="range" min="1" max="24" value="8">
-          <input id="sB" class="slider" type="range" min="1" max="24" value="6">
-          <input id="sC" class="slider" type="range" min="1" max="24" value="16">
-          <small style="color:var(--muted)">Move sliders to reassign the bit budget. The visualization updates approximate sensitivities and a synthetic "final error" metric to show qualitative effects.</small>
-        </div>
-        <div style="height:14px"></div>
-        <div class="legend">Notes
-          <ul style="color:var(--muted)">
-            <li>This page is a conceptual visualization, not a numeric solver.</li>
-            <li>Sensitivity values are illustrative; real allocation uses error-propagation models.</li>
-          </ul>
+          <label>Format
+            <select id="format" style="width:100%;margin-top:6px;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted)">
+              <option value="FP8">FP8 (E4M3)</option>
+              <option value="INT8">INT8</option>
+              <option value="FP4">FP4 (E2M1)</option>
+            </select>
+          </label>
+
+          <label>Protection fraction: <span id="fracLabel" style="float:right">0.30</span>
+            <input id="protect" type="range" min="0" max="0.8" step="0.01" value="0.30">
+          </label>
+
+          <label>Mask update frequency (iterations): <span id="freqLabel" style="float:right">0 (static)</span>
+            <input id="freq" type="range" min="0" max="20" step="1" value="0">
+          </label>
+
+          <div class="stats">
+            <div class="stat"><div style="color:var(--muted)">Estimated final penalty</div><b id="errVal">1.2e-4</b></div>
+            <div class="stat"><div style="color:var(--muted)">Active bits / entry</div><b id="bitsVal">16.7</b></div>
+            <div class="stat"><div style="color:var(--muted)">Storage reduction</div><b id="saveVal">56%</b></div>
+          </div>
+
+          <div class="cta">
+            <button class="btn" id="applyPreset">Preset: FP8 static</button>
+            <button class="btn secondary" id="download">Download mask</button>
+          </div>
+
+          <div style="margin-top:12px;color:var(--muted);font-size:0.9rem">
+            Tip: this demo uses synthetic sensitivity scores for visualization; connect it to the provided sensitivity script to feed real numbers and produce publication-ready figures.
+          </div>
         </div>
       </aside>
     </div>
 
-    <div class="footer">
-      <strong>Explore</strong> — Add your solver model and a small script to compute sensitivities and the optimal allocation. This page can be adapted to fetch real measurements and present a guided allocation suggestion.
-    </div>
+    <footer>
+      <div>Authors: N. Sahraneshinsamani, J. I. Aliaga, S. Catalán, J. R. Herrero — Apache-2.0 • Use in paper: cite repository or PR</div>
+    </footer>
   </div>
 
-  <script>
-    // Simple UI glue to simulate allocation changes; update bars and the synthetic error metric.
-    const sA = document.getElementById('sA'), sB = document.getElementById('sB'), sC = document.getElementById('sC');
-    const bitsA = document.getElementById('bitsA'), bitsB = document.getElementById('bitsB'), bitsC = document.getElementById('bitsC');
-    const barA = document.getElementById('barA'), barB = document.getElementById('barB'), barC = document.getElementById('barC');
-    const finalError = document.getElementById('finalError');
-    const sensA = document.getElementById('sensA'), sensB = document.getElementById('sensB'), sensC = document.getElementById('sensC');
+<script>
+/* Demo logic: more polished drawing and an artistic particle overlay */
+const canvas = document.getElementById('heat'), ctx = canvas.getContext('2d');
+const m = 40, n = 90; // display grid size
+let vals = new Float32Array(m*n);
+for(let i=0;i<m*n;i++) vals[i] = Math.sin(i*0.07)*(0.8*Math.random()+0.4); // structured-ish demo data
 
-    function update() {
-      const a = +sA.value, b = +sB.value, c = +sC.value;
-      const total = a+b+c;
-      // map bits to widths (visual)
-      barA.style.width = Math.max(24, (a/30)*220) + 'px';
-      barB.style.width = Math.max(24, (b/30)*220) + 'px';
-      barC.style.width = Math.max(24, (c/30)*220) + 'px';
-      bitsA.textContent = a; bitsB.textContent = b; bitsC.textContent = c;
+function drawMask(mask){
+  const w = canvas.width, h = canvas.height, cw = w/n, ch = h/m;
+  // background gradient
+  const g = ctx.createLinearGradient(0,0,0,h);
+  g.addColorStop(0, '#071821'); g.addColorStop(1, '#02131a');
+  ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
 
-      // synthetic sensitivity estimate: more bits -> lower impact; here we invert bits but scale by an illustrative factor
-      const sAval = (12 / a).toFixed(2); const sBval = (12 / b).toFixed(2); const sCval = (12 / c).toFixed(2);
-      sensA.textContent = sAval; sensB.textContent = sBval; sensC.textContent = sCval;
+  // subtle grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.02)'; ctx.lineWidth = 0.6;
+  for(let i=0;i<=n;i++){ const x=i*cw; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
+  for(let j=0;j<=m;j++){ const y=j*ch; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
 
-      // synthetic final error: weighted harmonic-ish combination (purely illustrative)
-      const err = ( (sAval*0.7) + (sBval*0.4) + (sCval*1.1) ) / 300;
-      finalError.textContent = err.toExponential(2);
+  // draw cells
+  for(let i=0;i<m;i++){
+    for(let j=0;j<n;j++){
+      const v = vals[i*n+j];
+      // color mapping: cold->blue, hot->yellow/red
+      const t = Math.max(-1, Math.min(1, v));
+      const r = Math.round(40 + 215*Math.max(0,t));
+      const gcol = Math.round(30 + 140*(1-Math.abs(t)));
+      const b = Math.round(40 + 215*Math.max(0,-t));
+      ctx.fillStyle = `rgb(${r},${gcol},${b})`;
+      ctx.fillRect(j*cw+1, i*ch+1, cw-2, ch-2);
+
+      if(mask && mask[i*n+j]){
+        // protected overlay: bold geometric mark
+        ctx.fillStyle = 'rgba(227,27,35,0.12)';
+        ctx.fillRect(j*cw+1, i*ch+1, cw-2, ch-2);
+        // small yellow triangle mark
+        ctx.fillStyle = 'rgba(255,212,0,0.9)';
+        ctx.beginPath();
+        ctx.moveTo(j*cw + cw - 6, i*ch + 6);
+        ctx.lineTo(j*cw + cw - 14, i*ch + 6);
+        ctx.lineTo(j*cw + cw - 6, i*ch + 14);
+        ctx.closePath(); ctx.fill();
+      }
     }
+  }
+}
 
-    [sA,sB,sC].forEach(s=>s.addEventListener('input', update));
-    update();
-  </script>
+// synthetic score: combine abs(val) with a spatial smoothness (mimic sensitivity)
+function computeScores(){
+  const s = new Float32Array(m*n);
+  for(let i=0;i<m;i++){
+    for(let j=0;j<n;j++){
+      const idx=i*n+j;
+      const base = Math.abs(vals[idx]);
+      // amplify near center as "more important"
+      const cx = Math.abs(j - n/2)/(n/2), cy = Math.abs(i - m/2)/(m/2);
+      const dist = Math.sqrt(cx*cx + cy*cy);
+      s[idx] = base * (1 + 0.9*(1 - dist));
+    }
+  }
+  return s;
+}
+
+function makeMask(frac){
+  const k = Math.floor(frac*m*n);
+  const scores = Array.from(computeScores().map((v,i)=>({v,i})));
+  scores.sort((a,b)=>b.v-a.v);
+  const mask = new Uint8Array(m*n);
+  for(let t=0;t<k;t++) mask[scores[t].i]=1;
+  return mask;
+}
+
+function estimateMetrics(mask, format){
+  // synthetic mapping reflecting real paper tendencies
+  const basePenalty = {FP8:1.0, INT8:1.06, FP4:1.28}[format] || 1.0;
+  const prot = Array.from(mask).reduce((a,b)=>a+b,0)/(m*n);
+  const penalty = basePenalty * (0.6 + 0.4*Math.exp(-5*prot));
+  const formatBits = {FP8:8,INT8:8,FP4:4}[format];
+  const activeBits = ((prot*32)+(1-prot)*formatBits) + 1.0; // +1 mask overhead
+  const storageSaving = Math.round(100*(1 - activeBits/32));
+  return {penalty,activeBits,storageSaving};
+}
+
+function updateUI(){
+  const frac = parseFloat(document.getElementById('protect').value);
+  const fmt = document.getElementById('format').value;
+  const mask = makeMask(frac);
+  drawMask(mask);
+  const mtx = estimateMetrics(mask,fmt);
+  document.getElementById('errVal').textContent = mtx.penalty.toFixed(3);
+  document.getElementById('bitsVal').textContent = mtx.activeBits.toFixed(2);
+  document.getElementById('saveVal').textContent = mtx.storageSaving + '%';
+  document.getElementById('fracLabel').textContent = frac.toFixed(2);
+  const freq = parseInt(document.getElementById('freq').value,10);
+  document.getElementById('freqLabel').textContent = freq===0? '0 (static)' : String(freq);
+}
+
+document.getElementById('protect').addEventListener('input', updateUI);
+document.getElementById('format').addEventListener('change', updateUI);
+document.getElementById('freq').addEventListener('input', updateUI);
+document.getElementById('applyPreset').addEventListener('click', ()=>{ document.getElementById('format').value='FP8'; document.getElementById('protect').value=0.30; updateUI(); });
+document.getElementById('download').addEventListener('click', ()=>{
+  const mask = makeMask(parseFloat(document.getElementById('protect').value));
+  let csv = 'i,j,protected\n';
+  for(let i=0;i<m;i++) for(let j=0;j<n;j++) csv += `${i},${j},${mask[i*n+j]}\n`;
+  const blob = new Blob([csv],{type:'text/csv'}), url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='mask.csv'; a.click(); URL.revokeObjectURL(url);
+});
+
+updateUI();
+</script>
 </body>
 </html>
