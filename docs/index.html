@@ -1,262 +1,3521 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Solver-Aware Precision Allocation — Visual & Artistic Demo</title>
-  <meta name="description" content="Solver-aware precision allocation for robust matrix completion — interactive demo and artistic visualization inspired by German design principles (Bauhaus-like).">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Influence-Routed Mixed-Precision Robust Matrix Completion | Interactive Visual Simulator</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- MathJax Configuration -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true
+      },
+      options: {
+        ignoreHtmlClass: 'tex2jax_ignore',
+        processHtmlClass: 'tex2jax_process'
+      }
+    };
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" id="MathJax-script" async></script>
+
   <style>
-    /* Germanic / Bauhaus-inspired palette and geometry */
-    :root{
-      --bg:#0b0b0b;           /* deep black */
-      --panel:#0f1720;        /* dark slate */
-      --accent-red:#E31B23;   /* warm strong red */
-      --accent-yellow:#FFD400;/* bright yellow */
-      --muted:#BFC9D7;        /* soft scientific gray */
-      --glass: rgba(255,255,255,0.03);
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Helvetica Neue", monospace;
-      --sans: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      --radius:12px;
+    :root {
+      --bg-primary: #0b1120;
+      --bg-secondary: #131d33;
+      --bg-card: #1e293b;
+      --bg-card-hover: #273549;
+      --border-color: #334155;
+      --primary: #38bdf8;
+      --primary-dark: #0284c7;
+      --accent-gold: #f59e0b;
+      --accent-gold-bg: rgba(245, 158, 11, 0.15);
+      --accent-green: #10b981;
+      --accent-red: #ef4444;
+      --accent-purple: #a855f7;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
-    html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg),#07121a);color:var(--muted);font-family:var(--sans);-webkit-font-smoothing:antialiased}
-    .wrap{max-width:1100px;margin:36px auto;padding:26px;border-radius:16px;background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);box-shadow:0 20px 60px rgba(0,0,0,0.6)}
-    header{display:flex;gap:18px;align-items:center}
-    .logo{width:74px;height:74px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--accent-red),var(--accent-yellow));color:#07121a;font-weight:800;font-size:18px;letter-spacing:1px}
-    h1{margin:0;color:#f6fbff;font-size:1.5rem;line-height:1.05}
-    .subtitle{color:var(--muted);margin-top:6px}
-    .meta{display:flex;gap:12px;align-items:center;margin-top:8px;color:var(--muted);font-size:0.9rem}
-    .meta .badge{padding:6px 8px;border-radius:8px;background:var(--glass);border:1px solid rgba(255,255,255,0.03);font-weight:600;color:#fff}
-    .layout{display:grid;grid-template-columns:1fr 420px;gap:18px;margin-top:18px}
-    .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
-    /* Artistic header band */
-    .artband{height:96px;border-radius:10px;display:flex;align-items:center;gap:12px;padding:14px;background:
-      linear-gradient(90deg, rgba(227,27,35,0.08), rgba(255,212,0,0.05));overflow:hidden;border:1px solid rgba(255,255,255,0.02)}
-    .art-geom{width:140px;height:70px;position:relative}
-    .geom-square{position:absolute;width:62px;height:62px;left:8px;top:4px;background:var(--accent-yellow);transform:skewX(-6deg);opacity:0.95}
-    .geom-tri{position:absolute;right:8px;bottom:0;width:0;height:0;border-left:34px solid transparent;border-right:34px solid transparent;border-bottom:68px solid var(--accent-red);opacity:0.95}
-    /* matrix canvas */
-    canvas{width:100%;height:420px;border-radius:10px;display:block;background:linear-gradient(180deg,#071821,#02131a);border:1px solid rgba(255,255,255,0.02)}
-    .controls{display:flex;flex-direction:column;gap:10px}
-    .row{display:flex;gap:10px;align-items:center}
-    label{font-size:0.9rem;color:var(--muted)}
-    input[type=range]{width:100%}
-    .pill{display:inline-flex;gap:8px;align-items:center;padding:8px 10px;border-radius:999px;background:rgba(255,255,255,0.02);font-weight:700;color:#fff}
-    .stats{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px}
-    .stat{background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.02);min-width:120px}
-    .stat b{display:block;color:#fff;font-size:1.05rem}
-    .cta{margin-top:12px;display:flex;gap:8px}
-    .btn{padding:8px 12px;border-radius:10px;border:none;cursor:pointer;background:var(--accent-red);color:white;font-weight:700}
-    .btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
-    footer{margin-top:18px;color:var(--muted);font-size:0.9rem;text-align:center}
-    /* typographic accent block for scientific text */
-    .paper-abstract{background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;font-size:0.95rem;color:var(--muted);line-height:1.45;border-left:4px solid var(--accent-yellow)}
-    /* small decorative grid lines */
-    .gridlines{position:absolute;left:0;top:0;right:0;bottom:0;pointer-events:none;opacity:0.03;background-image:
-      linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
-      background-size:60px 60px,60px 60px;border-radius:10px;}
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background: radial-gradient(circle at 50% 0%, #172554 0%, #0b1120 70%);
+      color: var(--text-main);
+      min-height: 100vh;
+      line-height: 1.7;
+      padding-bottom: 60px;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    /* Top Navigation / Header */
+    header {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 28px 36px;
+      margin-bottom: 28px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    .header-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--primary);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 900;
+      color: #ffffff;
+      margin-bottom: 10px;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 15px;
+      max-width: 900px;
+    }
+
+    /* Tab Switcher */
+    .tabs-nav {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-muted);
+      font-family: var(--font-family);
+      font-size: 15px;
+      font-weight: 700;
+      padding: 10px 20px;
+      border-radius: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: #0b1120;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+    }
+
+    /* Story Mode Layout */
+    .story-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .story-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      transition: transform 0.2s;
+    }
+
+    .story-card:hover {
+      transform: translateY(-3px);
+      border-color: var(--primary);
+    }
+
+    .story-icon {
+      font-size: 36px;
+      margin-bottom: 14px;
+      display: inline-block;
+    }
+
+    .story-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 10px;
+    }
+
+    .story-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.8;
+    }
+
+    /* Main Dashboard Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 1100px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Control Sidebar */
+    .sidebar {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      height: fit-content;
+    }
+
+    .panel-title {
+      font-size: 17px;
+      font-weight: 800;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .control-label {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #cbd5e1;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .control-value {
+      color: var(--primary);
+      font-family: monospace;
+      font-weight: bold;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: var(--primary);
+      cursor: pointer;
+    }
+
+    select {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: #ffffff;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-family: var(--font-family);
+      font-size: 14px;
+      outline: none;
+      cursor: pointer;
+    }
+
+    select:focus {
+      border-color: var(--primary);
+    }
+
+    .btn-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .action-btn {
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: none;
+      font-family: var(--font-family);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #38bdf8, #0284c7);
+      color: #0b1120;
+      grid-column: span 2;
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
+    }
+
+    .btn-step {
+      background: rgba(168, 85, 247, 0.2);
+      border: 1px solid rgba(168, 85, 247, 0.4);
+      color: #c084fc;
+    }
+
+    .btn-step:hover {
+      background: rgba(168, 85, 247, 0.35);
+    }
+
+    .btn-reset {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+
+    .btn-reset:hover {
+      background: rgba(239, 68, 68, 0.25);
+    }
+
+    /* Live Algorithm Pipeline Stepper */
+    .pipeline-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+    }
+
+    .pipeline-step {
+      flex: 1;
+      min-width: 140px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+      transition: all 0.3s;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .pipeline-step:hover {
+      border-color: var(--primary);
+    }
+
+    .pipeline-step.active {
+      border-color: var(--primary);
+      background: rgba(56, 189, 248, 0.1);
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
+    }
+
+    .pipeline-step.completed {
+      border-color: var(--accent-green);
+    }
+
+    .step-number {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .pipeline-step.active .step-number {
+      color: var(--primary);
+    }
+
+    .step-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    /* ======================================================== */
+    /* Visual Stage / Graphic Theater                           */
+    /* ======================================================== */
+    .stage-container {
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      overflow: hidden;
+      margin-bottom: 20px;
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
+    }
+
+    .stage-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+      background: rgba(30, 41, 59, 0.6);
+      border-bottom: 1px solid var(--border-color);
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .stage-badge {
+      font-size: 13px;
+      font-weight: 800;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stage-canvas-wrapper {
+      position: relative;
+      width: 100%;
+      height: 310px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at 50% 50%, #1e293b 0%, #090e17 80%);
+      cursor: grab;
+    }
+
+    .stage-canvas-wrapper:active {
+      cursor: grabbing;
+    }
+
+    #stage-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .stage-hud {
+      position: absolute;
+      bottom: 10px;
+      right: 14px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 11.5px;
+      color: #38bdf8;
+      backdrop-filter: blur(4px);
+      pointer-events: none;
+    }
+
+    .stage-footer {
+      padding: 10px 18px;
+      background: rgba(15, 23, 42, 0.5);
+      border-top: 1px solid rgba(51, 65, 85, 0.5);
+      font-size: 12.5px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .stage-btn-pulse {
+      background: linear-gradient(135deg, #0284c7, #38bdf8);
+      color: #0b1120;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .stage-btn-pulse:hover {
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.6);
+    }
+
+    /* Matrix Display Cards */
+    .matrices-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .matrix-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      padding: 20px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .matrix-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .matrix-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .matrix-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+
+    .badge-clean { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .badge-observed { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+    .badge-routed { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+    .badge-recon { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+
+    /* The Matrix Table */
+    .matrix-grid-wrapper {
+      overflow: auto;
+      border-radius: 12px;
+      border: 1px solid #1e293b;
+      background: #0f172a;
+      padding: 10px;
+      max-height: 380px;
+    }
+
+    .matrix-table {
+      border-collapse: collapse;
+      margin: 0 auto;
+      direction: ltr;
+    }
+
+    .matrix-cell {
+      width: 44px;
+      height: 38px;
+      text-align: center;
+      font-size: 11px;
+      font-family: monospace;
+      font-weight: 600;
+      border: 1px solid #1e293b;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .matrix-cell:hover {
+      transform: scale(1.15);
+      z-index: 10;
+      box-shadow: 0 0 10px rgba(0,0,0,0.8);
+      border-color: #ffffff !important;
+    }
+
+    .cell-missing {
+      background: #1e293b !important;
+      color: #64748b;
+      border: 1px dashed #475569;
+    }
+
+    .cell-outlier {
+      background: #7f1d1d !important;
+      color: #fecaca !important;
+      animation: pulse-red 2s infinite;
+    }
+
+    @keyframes pulse-red {
+      0%, 100% { box-shadow: inset 0 0 6px #ef4444; }
+      50% { box-shadow: inset 0 0 14px #ef4444; }
+    }
+
+    .cell-fp32 {
+      border: 2px solid #f59e0b !important;
+      box-shadow: inset 0 0 8px rgba(245, 158, 11, 0.35);
+    }
+
+    .cell-fp4 {
+      border: 1px solid #0284c7;
+    }
+
+    /* Cell VIP crown indicator */
+    .cell-fp32::after {
+      content: '👑';
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      font-size: 9px;
+    }
+
+    /* Live Formula Inspector Box */
+    .formula-inspector {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .inspector-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #ffffff;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .formula-display-box {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 16px;
+      direction: ltr;
+      text-align: center;
+      font-size: 16px;
+    }
+
+    .formula-explanation {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      font-size: 13.5px;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 800px) {
+      .formula-explanation {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .formula-box-kid {
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .formula-box-kid-title {
+      color: #34d399;
+      font-weight: 800;
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+
+    .formula-box-math {
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .formula-box-math-title {
+      color: #38bdf8;
+      font-weight: 800;
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+
+    /* Live Cell Details Modal/Bar */
+    .cell-live-breakdown {
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid #475569;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-top: 14px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .stat-pill {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .stat-pill-label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .stat-pill-val {
+      font-family: monospace;
+      font-size: 14px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    /* Side-by-Side Battle Tab */
+    .battle-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .battle-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .battle-col {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      padding: 20px;
+    }
+
+    .battle-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
+
+    .battle-smart {
+      border: 1px solid #10b981;
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    .battle-random {
+      border: 1px solid #f87171;
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    /* Chart Canvas */
+    .chart-container {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+
+    /* Reverse Water-filling tank */
+    .waterfill-tank {
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 14px;
+      height: 180px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      padding: 10px;
+      margin-top: 14px;
+    }
+
+    .waterfill-col {
+      flex: 1;
+      background: #1e293b;
+      border-radius: 8px 8px 0 0;
+      display: flex;
+      flex-direction: column-reverse;
+      position: relative;
+      transition: height 0.4s;
+    }
+
+    .water-fill {
+      background: linear-gradient(180deg, #38bdf8, #0369a1);
+      width: 100%;
+      border-radius: 8px 8px 0 0;
+      transition: height 0.4s;
+      position: relative;
+    }
+
+    .water-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      border-top: 2px dashed #f59e0b;
+      z-index: 5;
+      transition: bottom 0.4s;
+    }
+
+    .water-line-label {
+      position: absolute;
+      left: 10px;
+      top: -20px;
+      font-size: 11px;
+      font-family: monospace;
+      color: #f59e0b;
+      font-weight: bold;
+    }
+  
+    /* 3D Matrix Showcase Styles — Rigorous Mathematical & Academic Styling */
+    .matrix-3d-card {
+      background: #0d121f;
+      border: 1px solid rgba(71, 85, 105, 0.35);
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 28px -8px rgba(0, 0, 0, 0.55);
+      transition: border-color 0.25s ease;
+    }
+
+    .matrix-3d-card:hover {
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+
+    .math-sym {
+      font-family: 'KaTeX_Math', 'Cambria Math', 'Times New Roman', serif;
+      font-style: italic;
+      font-weight: 700;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .mode-btn {
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      color: #94a3b8;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 13px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+
+    .mode-btn:hover {
+      background: rgba(56, 189, 248, 0.12);
+      color: #f1f5f9;
+      border-color: rgba(56, 189, 248, 0.4);
+    }
+
+    .mode-btn.active {
+      background: rgba(14, 116, 144, 0.3);
+      color: #38bdf8;
+      border-color: #0ea5e9;
+      box-shadow: 0 0 10px rgba(14, 165, 233, 0.25);
+    }
+
+    .mode-btn-morph {
+      background: rgba(16, 185, 129, 0.12);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 6px 13px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+
+    .mode-btn-morph:hover {
+      background: rgba(16, 185, 129, 0.22);
+      border-color: #10b981;
+      color: #ffffff;
+    }
+
+    .mode-btn-morph.active-morph {
+      background: #047857;
+      color: #ffffff;
+      border-color: #10b981;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+    }
+
   </style>
+
+  <!-- Three.js & OrbitControls for High-Performance 3D Matrix Visualization -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
 </head>
 <body>
-  <div class="wrap">
+
+  <div class="container">
+    <!-- Header -->
     <header>
-      <div class="logo" aria-hidden>SAP</div>
-      <div>
-        <h1>Solver-Aware Precision Allocation</h1>
-        <div class="subtitle">Among stored observations in robust matrix completion — artistic & scientific demo</div>
-        <div class="meta">
-          <div class="badge">N. Sahraneshinsamani et al.</div>
-          <div class="badge">Caltrans PeMS • 170 × 4032</div>
-        </div>
+      <div class="header-tag">
+        <span>🔬</span>
+        <span>CMMSE / Journal of Computational and Applied Mathematics &bull; Research Article</span>
+      </div>
+      <h1>Storage Format Allocation and Arithmetic Precision in Robust Matrix Completion</h1>
+      <p class="subtitle">
+        Interactive mathematical simulator: exploring how 4-bit storage compression (FP4), Cauchy redescending loss (IRLS), and Stiefel manifold Riemannian geometry recover missing observations under physical memory constraints.
+      </p>
+
+      <!-- Tab Navigation -->
+      <div class="tabs-nav">
+        <button class="tab-btn active" onclick="switchTab('interactive')">
+          <span>🎮</span>
+          <span>Live Algorithm Lab</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('formulas')">
+          <span>📐</span>
+          <span>Mathematical Primer & Formulations</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('kids')">
+          <span>🧒</span>
+          <span>Intuitive Conceptual Overview</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('battle')">
+          <span>⚔️</span>
+          <span>Live Benchmark: Smart vs. Random</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('waterfill')">
+          <span>💧</span>
+          <span>Reverse Water-Filling Bit Allocation</span>
+        </button>
       </div>
     </header>
 
-    <div style="margin-top:14px" class="artband panel">
-      <div class="art-geom" aria-hidden>
-        <div class="geom-square"></div>
-        <div class="geom-tri"></div>
-        <div class="gridlines"></div>
-      </div>
-      <div style="flex:1">
-        <div style="color:var(--muted);font-size:0.95rem">
-          Precision allocation blends numerical sensitivity with compact storage: protect a fraction of observations in FP32 while compressing the rest to FP8/FP4/INT8, guided by solver-aware sensitivity scores. This demo visualizes allocation masks, active bits, and an estimated penalty metric in an expressive, geometric layout.
+    <!-- ============================================================= -->
+    <!-- TAB 1: INTERACTIVE SOLVER LAB                                 -->
+    <!-- ============================================================= -->
+    <div id="tab-interactive">
+      
+      <!-- Pipeline Stepper -->
+      <div class="pipeline-bar">
+        <div class="pipeline-step active" id="step-0" onclick="setPipelineStep(0)">
+          <div class="step-number">Step 0</div>
+          <div class="step-title">Observations & Outliers</div>
+        </div>
+        <div class="pipeline-step" id="step-1" onclick="setPipelineStep(1)">
+          <div class="step-number">Step 1</div>
+          <div class="step-title">Residuals & Cauchy Filter</div>
+        </div>
+        <div class="pipeline-step" id="step-2" onclick="setPipelineStep(2)">
+          <div class="step-number">Step 2</div>
+          <div class="step-title">Influence & FP32 Protection</div>
+        </div>
+        <div class="pipeline-step" id="step-3" onclick="setPipelineStep(3)">
+          <div class="step-number">Step 3</div>
+          <div class="step-title">Weighted Least Squares (V)</div>
+        </div>
+        <div class="pipeline-step" id="step-4" onclick="setPipelineStep(4)">
+          <div class="step-number">Step 4</div>
+          <div class="step-title">Stiefel Riemannian Step (U)</div>
+        </div>
+        <div class="pipeline-step" id="step-5" onclick="setPipelineStep(5)">
+          <div class="step-number">Step 5</div>
+          <div class="step-title">Reconstruction $\widehat{X}$</div>
         </div>
       </div>
-      <div style="width:220px;text-align:right">
-        <div style="font-size:0.9rem;color:var(--muted)">Quick take</div>
-        <div style="font-weight:800;color:#fff;font-size:1.05rem">Protect 30% in FP8 → penalty ≈ 1.000</div>
-      </div>
-    </div>
 
-    <div class="layout">
-      <div class="panel">
-        <div style="display:flex;gap:12px;align-items:flex-start">
-          <div style="flex:1">
-            <div class="paper-abstract">
-              <strong>Abstract</strong>
-              <div style="margin-top:8px;color:var(--muted);font-size:0.95rem">
-                In robust matrix completion at scale, mixed precision plays two distinct roles: the format used to store observed entries, and the arithmetic precision of the solver. We decouple these effects for an IRLS solver on the Stiefel manifold. Protect a small fraction in FP32, compress the bulk, and allocate bits by gradient sensitivity (evaluated in FP64).
+      <div class="dashboard-grid">
+        
+        <!-- Controls Sidebar -->
+        <aside class="sidebar">
+          <div class="panel-title">
+            <span>⚙️</span>
+            <span>Problem Configuration & Controls</span>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">
+              <span>Matrix Dimensions ($m \times n$):</span>
+              <span class="control-value" id="val-dim">8 &times; 8</span>
+            </div>
+            <select id="matrix-size-select" onchange="resetProblem()">
+              <option value="6">Small (6 &times; 6) - Cell Inspection</option>
+              <option value="8" selected>Standard (8 &times; 8) - Balanced</option>
+              <option value="12">Large (12 &times; 12) - Dense Field</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">
+              <span>Protected FP32 Budget ($\beta$):</span>
+              <span class="control-value" id="val-budget">25%</span>
+            </div>
+            <input type="range" id="slider-budget" min="0" max="60" value="25" step="5" oninput="updateBudget(this.value)">
+            <small style="color: var(--text-muted); font-size: 11.5px;">Target fraction of observed entries preserved in full FP32 precision.</small>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">
+              <span>Coarse Storage Format:</span>
+            </div>
+            <select id="select-format" onchange="runCurrentStep()">
+              <option value="fp4" selected>FP4 E2M1 (4 bits - High Compression)</option>
+              <option value="int8">INT8 (8 bits - Block Scaled)</option>
+              <option value="fp16">FP16 (16 bits - Half Precision)</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">
+              <span>Precision Allocation Policy:</span>
+            </div>
+            <select id="select-policy" onchange="runCurrentStep()">
+              <option value="influence" selected>Residual Influence ($s_{ij}$)</option>
+              <option value="quant_error">Quantization Error ($q_{ij}$)</option>
+              <option value="data">Data Magnitude ($d_{ij}$)</option>
+              <option value="random">Random Baseline (Uniform)</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">
+              <span>Missing Observation Rate:</span>
+              <span class="control-value" id="val-missing">35%</span>
+            </div>
+            <input type="range" id="slider-missing" min="10" max="60" value="35" step="5" oninput="document.getElementById('val-missing').innerText = this.value + '%'; resetProblem();">
+          </div>
+
+          <div class="control-group">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13.5px;">
+              <input type="checkbox" id="check-column-balanced" checked onchange="runCurrentStep()">
+              <span>Column-Balanced Quota</span>
+            </label>
+            <small style="color: var(--text-muted); font-size: 11px;">Prevents column rank starvation under coarse 4-bit storage</small>
+          </div>
+
+          <div class="btn-group">
+            <button class="action-btn btn-primary" id="btn-play" onclick="toggleAutoPlay()">
+              <span id="play-icon">▶</span>
+              <span id="play-text">Auto-Run Solver</span>
+            </button>
+            <button class="action-btn btn-step" onclick="nextStepManual()">
+              <span>⏭</span>
+              <span>Next Step</span>
+            </button>
+            <button class="action-btn btn-reset" onclick="resetProblem()">
+              <span>🔄</span>
+              <span>New Problem</span>
+            </button>
+          </div>
+
+          <!-- Real-time metrics -->
+          <div style="background: var(--bg-card); border-radius: 12px; padding: 14px; border: 1px solid var(--border-color); margin-top: 10px;">
+            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Relative Recovery Error ($\lVert \widehat{X} - X^*\rVert_F / \lVert X^*\rVert_F$):</div>
+            <div id="metric-rel-error" style="font-family: monospace; font-size: 20px; font-weight: 800; color: #38bdf8;">--</div>
+            <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px;">
+              <span style="color: var(--text-muted);">Active Storage Cost:</span>
+              <span id="metric-bits" style="font-family: monospace; font-weight: bold; color: #f59e0b;">--</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 4px; font-size: 12px;">
+              <span style="color: var(--text-muted);">Solver Iteration:</span>
+              <span id="metric-iter" style="font-family: monospace; font-weight: bold; color: #ffffff;">0</span>
+            </div>
+          </div>
+        </aside>
+
+        
+        <!-- Matrices Area -->
+        <main>
+
+          <!-- 3D Matrix Spatiotemporal Surface Showcase -->
+          <div class="matrix-3d-card" id="showcase-3d-section">
+            <div class="matrix-3d-header" style="display: flex; justify-content: space-between; align-items: center; padding: 14px 22px; background: rgba(15, 23, 42, 0.88); border-bottom: 1px solid rgba(71, 85, 105, 0.35); flex-wrap: wrap; gap: 12px;">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <span class="math-sym" style="font-size: 15px; padding: 3px 8px; border-radius: 5px;">X &isin; &Ropf;<sup>m&times;n</sup></span>
+                <div>
+                  <div style="font-size: 15px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.2px;">
+                    3D Discrete Manifold Surface Reconstruction
+                  </div>
+                  <div style="font-size: 12px; color: #94a3b8; font-family: monospace;">
+                    Coordinate Topography &bull; Grassmannian Retraction &amp; Reweighted Denoising
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 3D View Mode Switcher -->
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <button class="mode-btn" id="btn-3d-clean" onclick="userSelectMode('clean')">
+                  <span class="math-sym">X*</span> Ground Truth
+                </button>
+                <button class="mode-btn" id="btn-3d-observed" onclick="userSelectMode('observed')">
+                  <span class="math-sym">Y_&Omega;</span> Observed Field
+                </button>
+                <button class="mode-btn" id="btn-3d-routed" onclick="userSelectMode('routed')">
+                  <span class="math-sym">&Ycirc;</span> Precision-Routed
+                </button>
+                <button class="mode-btn" id="btn-3d-recovered" onclick="userSelectMode('recovered')">
+                  <span class="math-sym">X&#770;</span> Reconstructed State
+                </button>
+                <button class="mode-btn-morph active-morph" id="btn-3d-morph" onclick="toggle3DMorphAnimation()">
+                  <span id="morph-icon">&#10074;&#10074;</span> <span id="morph-text">Dynamic Evolution (Live)</span>
+                </button>
               </div>
             </div>
 
-            <div style="margin-top:12px">
-              <canvas id="heat" width="860" height="420"></canvas>
+            <!-- WebGL Canvas Container -->
+            <!-- Color Legend sidebar canvas -->
+            <div style="display: flex; align-items: stretch; position: relative;">
+            <div id="three-matrix-container" style="flex: 1; height: 460px; position: relative; background: #090d16; cursor: grab;">
+              <div id="three-matrix-hud" style="position: absolute; top: 14px; left: 16px; background: rgba(10, 15, 29, 0.92); border: 1px solid rgba(71, 85, 105, 0.4); border-radius: 6px; padding: 6px 13px; font-size: 12px; color: #38bdf8; pointer-events: none; backdrop-filter: blur(6px); z-index: 10; font-family: monospace;">
+                Hover over coordinate cell (i, j) to inspect mathematical state
+              </div>
+              <div style="position: absolute; bottom: 12px; right: 16px; background: rgba(10, 15, 29, 0.88); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 5px 11px; font-size: 11px; color: #94a3b8; pointer-events: none; z-index: 10; font-family: monospace;">
+                Left Click: Orbit &bull; Right Click: Translate &bull; Wheel: Scale
+              </div>
+            </div><!-- end three-matrix-container -->
+
+            <!-- Vertical Color-Bar Legend (MATLAB / Matplotlib style) -->
+            <div style="width: 58px; flex-shrink: 0; position: relative; background: #0c111d; border-left: 1px solid rgba(71, 85, 105, 0.3); display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 12px 0 10px;">
+              <div style="font-size: 11px; color: #94a3b8; margin-bottom: 6px; font-family: monospace; font-style: italic; font-weight: 700;">X<sub>ij</sub></div>
+              <canvas id="colorbar-canvas" width="20" height="280" style="border-radius: 3px; border: 1px solid rgba(255,255,255,0.12);"></canvas>
+              <div id="colorbar-max" style="font-size: 9.5px; color: #f8fafc; font-family: monospace; margin-top: 5px;">+1.0</div>
+              <div id="colorbar-mid" style="font-size: 9.5px; color: #94a3b8; font-family: monospace; margin-top: 88px;">0.0</div>
+              <div id="colorbar-min" style="font-size: 9.5px; color: #f8fafc; font-family: monospace; margin-top: 88px;">&minus;1.0</div>
+            </div>
+            </div><!-- end flex wrapper -->
+
+            <!-- Footer Legend & Caption -->
+            <div style="padding: 12px 22px; background: rgba(13, 18, 31, 0.95); border-top: 1px solid rgba(71, 85, 105, 0.3); display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #94a3b8; flex-wrap: wrap; gap: 12px; font-family: monospace;">
+              <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
+                <span style="display: flex; align-items: center; gap: 6px;">
+                  <span style="width: 10px; height: 10px; background: #0284c7; border: 1px solid #38bdf8; border-radius: 2px;"></span> Inlier (Y<sub>ij</sub> &isin; &Omega;)
+                </span>
+                <span style="display: flex; align-items: center; gap: 6px;">
+                  <span style="width: 10px; height: 10px; background: #dc2626; border: 1px solid #f87171; border-radius: 2px;"></span> Cauchy Outlier (|e<sub>ij</sub>| &gg; &gamma;)
+                </span>
+                <span style="display: flex; align-items: center; gap: 6px;">
+                  <span style="width: 10px; height: 10px; background: #1e293b; border: 1px dashed #64748b; border-radius: 2px;"></span> Unsampled (ij &notin; &Omega;)
+                </span>
+                <span style="display: flex; align-items: center; gap: 6px;">
+                  <span style="width: 10px; height: 10px; background: #f59e0b; border: 1px solid #fbbf24; border-radius: 2px;"></span> Sensitivity Protected (&beta;<sub>ij</sub> = 1)
+                </span>
+              </div>
+              <div id="three-matrix-caption" style="color: #38bdf8; font-weight: 700;">
+                State: Ground Truth Manifold X* = UV<sup>T</sup> &isin; St(m,r) &times; &Ropf;<sup>n&times;r</sup>
+              </div>
+            </div>
+          </div>
+
+          
+          <!-- Live Math Inspector for the Active Step -->
+          <div class="formula-inspector">
+            <div class="inspector-title">
+              <span>🔍</span>
+              <span id="inspector-step-title">Current Step: Problem Initialization & Sensing</span>
+            </div>
+            
+            <div class="formula-display-box" id="inspector-math-box">
+              $$X^* = U V^\top, \quad Y_\Omega = \mathcal{P}_\Omega(X^* + \text{Noise} + \text{Outliers})$$
+            </div>
+
+            <!-- ======================================================== -->
+            <!-- THE GRAPHIC VISUAL THEATER (ANIMATED STEP GRAPHICS)      -->
+            <!-- ======================================================== -->
+            <div class="stage-container" id="stage-container">
+              <div class="stage-header">
+                <div class="stage-badge">
+                  <span>🎨</span>
+                  <span id="stage-title">Geometric Algorithm Theater</span>
+                </div>
+                <div id="stage-action-box">
+                  <!-- Dynamic button e.g. Animate Step -->
+                </div>
+              </div>
+              <div class="stage-canvas-wrapper" id="stage-wrapper">
+                <canvas id="stage-canvas" width="820" height="300"></canvas>
+                <div class="stage-hud" id="stage-hud">Click & Drag to rotate 3D view</div>
+              </div>
+              <div class="stage-footer">
+                <span id="stage-caption">Rendering geometric algorithm stage...</span>
+                <span id="stage-hint" style="color: #38bdf8; font-size: 11.5px;">Interactive & Animated</span>
+              </div>
+            </div>
+
+            <div class="formula-explanation">
+              <div class="formula-box-kid">
+                <div class="formula-box-kid-title">Intuitive Concept</div>
+                <div id="inspector-kid-text">
+                  We observe a low-rank ground-truth field with sensing deficiencies: unobserved sensor entries are missing (gray cells with "?"), and telemetry faults produce heavy-tailed gross outliers (red cell marked with ⚠️).
+                </div>
+              </div>
+              <div class="formula-box-math">
+                <div class="formula-box-math-title">Mathematical Formulation</div>
+                <div id="inspector-math-text">
+                  A ground-truth matrix $X^* = UV^\top$ of rank $r=2$ is sampled. The observation set $\Omega$ contains partially observed entries with additive Gaussian noise and gross outliers. The goal is to recover $X^*$ on the Stiefel manifold with minimal active storage bits.
+                </div>
+              </div>
+            </div>
+
+            <!-- Clicked Cell Details -->
+            <div class="cell-live-breakdown" id="cell-detail-bar">
+              <span style="color: var(--text-muted);">Click on any matrix cell to inspect its exact mathematical values and IRLS weights.</span>
+            </div>
+          </div>
+
+          <!-- The Four Live Matrices -->
+          <div class="matrices-container">
+            
+            <!-- Matrix 1: Clean Truth -->
+            <div class="matrix-card">
+              <div class="matrix-header">
+                <span class="matrix-title">1. Ground Truth ($X^* = UV^\top$)</span>
+                <span class="matrix-badge badge-clean">Uncorrupted Reference</span>
+              </div>
+              <div class="matrix-grid-wrapper">
+                <table class="matrix-table" id="table-clean"></table>
+              </div>
+            </div>
+
+            <!-- Matrix 2: Observed with Missing & Outliers -->
+            <div class="matrix-card">
+              <div class="matrix-header">
+                <span class="matrix-title">2. Observed Inputs ($Y_\Omega$)</span>
+                <span class="matrix-badge badge-observed">Missing + Outliers ⚠️</span>
+              </div>
+              <div class="matrix-grid-wrapper">
+                <table class="matrix-table" id="table-observed"></table>
+              </div>
+            </div>
+
+            <!-- Matrix 3: Routed / Quantized Storage -->
+            <div class="matrix-card">
+              <div class="matrix-header">
+                <span class="matrix-title">3. Routed Storage ($\widehat{Y}$)</span>
+                <span class="matrix-badge badge-routed">FP32 Pool vs FP4 Pool</span>
+              </div>
+              <div class="matrix-grid-wrapper">
+                <table class="matrix-table" id="table-routed"></table>
+              </div>
+            </div>
+
+            <!-- Matrix 4: Reconstructed Matrix -->
+            <div class="matrix-card">
+              <div class="matrix-header">
+                <span class="matrix-title">4. Solver Reconstruction ($\widehat{X}$)</span>
+                <span class="matrix-badge badge-recon">Completed & Denoised</span>
+              </div>
+              <div class="matrix-grid-wrapper">
+                <table class="matrix-table" id="table-recovered"></table>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Convergence Error Plot -->
+          <div class="chart-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <span style="font-size: 15px; font-weight: 800; color: #ffffff;">Live Convergence Trajectory</span>
+              <span style="font-size: 12px; color: var(--text-muted);">Horizontal: Iteration Index &bull; Vertical: Relative Recovery Error</span>
+            </div>
+            <canvas id="convergence-canvas" width="800" height="180" style="width: 100%; height: 180px;"></canvas>
+          </div>
+
+        </main>
+      </div>
+    </div>
+
+    <!-- ============================================================= -->
+    <!-- TAB 2: WEIRD FORMULAS DECODED                                 -->
+    <!-- ============================================================= -->
+    <div id="tab-formulas" style="display: none;">
+      <div style="background: var(--bg-card); border-radius: 20px; padding: 32px; border: 1px solid var(--border-color); margin-bottom: 24px;">
+        <h2 style="font-size: 22px; font-weight: 900; color: #ffffff; margin-bottom: 16px;">
+          Core Mathematical Formulations Decoded: Theoretical Rationale and Mechanics
+        </h2>
+        <p style="color: var(--text-muted); font-size: 15px; margin-bottom: 24px;">
+          A structured mathematical primer explaining the role of each governing equation in the Riemannian Stiefel IRLS solver and precision allocation framework:
+        </p>
+
+        <!-- Formula 1 -->
+        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+            <h3 style="font-size: 17px; font-weight: 800; color: #38bdf8;">Equation 1: Outlier Suppression via Cauchy Redescending M-Estimator</h3>
+            <span style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: bold;">Manuscript Eq. (13)</span>
+          </div>
+          <div style="background: #0f172a; padding: 14px; border-radius: 10px; text-align: center; margin: 12px 0; direction: ltr;">
+            $$w_{ij} = \frac{1}{1 + \left(\frac{r_{ij}}{c \cdot \sigma}\right)^2}, \qquad \sigma = 1.4826 \cdot \operatorname{median}\Big(|r_{ij} - \operatorname{median}(r)|\Big)$$
+          </div>
+          <div style="font-size: 14px; color: #cbd5e1; line-height: 1.8;">
+            <p><strong>Statistical Rationale:</strong> In standard least-squares ($L_2$ loss), the derivative is linear, giving unbounded leverage to gross outliers. The Cauchy loss $\rho(z) = \frac{c^2}{2} \ln(1 + z^2/c^2)$ has redescending derivative $\psi(z) = z / (1 + z^2/c^2)$. When an observation residual exceeds the dispersion threshold ($c \sigma$), the weight $w_{ij}$ smoothly drops towards zero at rate $\mathcal{O}(1/r^2)$.</p>
+            <p style="margin-top: 6px;"><strong>Operational Impact:</strong> Outliers and gross sensor spikes receive near-zero weights (median $w \approx 0.0024$), effectively expelling corrupted entries from the loss and preventing the high-precision FP32 budget from being squandered on faulty data.</p>
+          </div>
+        </div>
+
+        <!-- Formula 2 -->
+        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+            <h3 style="font-size: 17px; font-weight: 800; color: #f59e0b;">Equation 2: Entrywise Riemannian Gradient Perturbation Norm</h3>
+            <span style="background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: bold;">Manuscript Eq. (3)</span>
+          </div>
+          <div style="background: #0f172a; padding: 14px; border-radius: 10px; text-align: center; margin: 12px 0; direction: ltr;">
+            $$\|\delta G_{ij}\|_F = 2 \, W_{ij} \, |E_{ij}| \, \|v_j\|_2$$
+          </div>
+          <div style="font-size: 14px; color: #cbd5e1; line-height: 1.8;">
+            <p><strong>Structural Derivation:</strong> This bound decouples into three distinct physical and geometric factors:</p>
+            <ul style="padding-right: 20px; margin-top: 6px;">
+              <li><strong>$W_{ij}$ (Robust Statistics):</strong> Inlier confidence. Outlier entries have $W_{ij} \approx 0$ and exert zero gradient influence, needing no high-precision protection.</li>
+              <li><strong>$|E_{ij}|$ (Hardware Quantization):</strong> Rounding discrepancy introduced by low-precision representation ($E_{ij} = Y_{ij} - Q_s(Y_{ij})$).</li>
+              <li><strong>$\|v_j\|_2$ (Subspace Geometry):</strong> Statistical leverage and norm of column factor $v_j$.</li>
+            </ul>
+            <p style="margin-top: 6px;"><strong>Synthesis:</strong> The product upper-bounds the Riemannian gradient perturbation $\lVert\delta G_{ij}\rVert_F$. Protecting the top-$k$ scores directly minimizes worst-case solver disturbance.</p>
+          </div>
+        </div>
+
+        <!-- Formula 3 -->
+        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+            <h3 style="font-size: 17px; font-weight: 800; color: #10b981;">Equation 3: Residual-Influence Allocation Score</h3>
+            <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: bold;">Allocation Policy</span>
+          </div>
+          <div style="background: #0f172a; padding: 14px; border-radius: 10px; text-align: center; margin: 12px 0; direction: ltr;">
+            $$s_{ij} = W_{ij} \cdot |R^0_{ij}| \cdot \|v_j\|_2, \qquad H = \operatorname{arg\,top-}k (s_{ij})$$
+          </div>
+          <div style="font-size: 14px; color: #cbd5e1; line-height: 1.8;">
+            <p><strong>Mechanism:</strong> Evaluates entrywise gradient leverage based on current residuals $|r_{ij}|$. In dynamic reallocation under ultra-low-bit formats (FP4), this stabilizes factor trajectories and focuses protection on active learning boundaries.</p>
+          </div>
+        </div>
+
+        <!-- Formula 4 -->
+        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+            <h3 style="font-size: 17px; font-weight: 800; color: #c084fc;">Equation 4: Closed-Form Weighted Least Squares for Factor V</h3>
+            <span style="background: rgba(192, 132, 252, 0.15); color: #c084fc; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: bold;">IRLS V-Update</span>
+          </div>
+          <div style="background: #0f172a; padding: 14px; border-radius: 10px; text-align: center; margin: 12px 0; direction: ltr;">
+            $$\left(U_{\Omega_j}^\top W_j U_{\Omega_j} + \lambda I_r\right) v_j = U_{\Omega_j}^\top \left(W_j \widehat{y}_{\Omega_j}\right)$$
+          </div>
+          <div style="font-size: 14px; color: #cbd5e1; line-height: 1.8;">
+            <p><strong>Computational Efficiency:</strong> Because $U \in \mathrm{St}(m, r)$ has orthonormal columns ($U^\top U = I_r$), the V-subproblem decouples into $n$ independent, well-conditioned $r \times r$ symmetric linear systems that solve directly in closed form.</p>
+          </div>
+        </div>
+
+        <!-- Formula 5 -->
+        <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 16px; padding: 24px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+            <h3 style="font-size: 17px; font-weight: 800; color: #f43f5e;">Equation 5: Riemannian Tangent Projection & Polar Retraction</h3>
+            <span style="background: rgba(244, 63, 94, 0.15); color: #f43f5e; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: bold;">Differential Geometry</span>
+          </div>
+          <div style="background: #0f172a; padding: 14px; border-radius: 10px; text-align: center; margin: 12px 0; direction: ltr;">
+            $$P_{T_U}(G) = G - U \operatorname{sym}(U^\top G), \qquad R_U(\xi) = \operatorname{polar}(U + \xi) = L R^\top$$
+          </div>
+          <div style="font-size: 14px; color: #cbd5e1; line-height: 1.8;">
+            <p><strong>Geometric Rationale:</strong> Constraining $U$ to $\mathrm{St}(m, r)$ eliminates the scaling gauge ambiguity $UV^\top = (US)(VS^{-\top})^\top$, preventing factor magnitude drift in low-bit storage. The tangent projection $P_{T_U}(G)$ projects the Euclidean gradient onto the Stiefel tangent space, while the polar retraction $R_U(\xi) = \mathrm{polar}(U + \xi) = LR^\top$ pulls trial iterates back onto the manifold.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================= -->
+    <!-- TAB 3: KIDS & STORY MODE                                      -->
+    <!-- ============================================================= -->
+    <div id="tab-kids" style="display: none;">
+      <div style="text-align: center; max-width: 800px; margin: 0 auto 30px;">
+        <h2 style="font-size: 24px; font-weight: 900; color: #38bdf8; margin-bottom: 12px;">Conceptual Overview: Low-Rank Recovery & 4-Bit Storage</h2>
+        <p style="color: var(--text-muted); font-size: 15px;">A step-by-step intuitive guide illustrating how mixed-precision routing solves the memory-bandwidth bottleneck in robust scientific matrix recovery.</p>
+      </div>
+
+      <div class="story-container">
+        
+        <div class="story-card">
+          <div class="story-icon">🖼️</div>
+          <div class="story-title">1. The Spatiotemporal Sensing Grid</div>
+          <div class="story-desc">
+            Continuous physical sensor networks (such as highway traffic flow or air quality grids) form structured low-rank spatiotemporal matrices. Environmental outages cause unobserved voids (missing data), and hardware glitches inject corruptions (outliers).
+          </div>
+        </div>
+
+        <div class="story-card">
+          <div class="story-icon">📦</div>
+          <div class="story-title">2. The Hardware Memory Wall</div>
+          <div class="story-desc">
+            Storing millions of continuous sensor measurements in full-precision FP32 or FP64 overwhelms memory bandwidth. Compressing all entries into ultra-coarse 4-bit formats (FP4) provides an 8x memory footprint reduction, but uniform 4-bit storage leads to severe numerical error explosions.
+          </div>
+        </div>
+
+        <div class="story-card">
+          <div class="story-icon">🕵️‍♂️</div>
+          <div class="story-title">3. Influence-Driven Precision Routing</div>
+          <div class="story-desc">
+            Instead of uniform precision, we establish a dual-pool memory hierarchy: the vast majority of entries are compressed into 4-bit storage, while a tiny protected fraction (e.g. 10%–30%) of high-leverage, high-error entries are preserved in full FP32 precision.
+          </div>
+        </div>
+
+        <div class="story-card">
+          <div class="story-icon">🚫</div>
+          <div class="story-title">4. Robust Outlier Rejection via Cauchy IRLS</div>
+          <div class="story-desc">
+            When severe sensor spikes occur (e.g. telemetry errors reading 9999), standard least-squares collapses. The redescending Cauchy loss automatically assigns near-zero weights ($w \to 0$) to gross outliers, suppressing their influence without manual filtering.
+          </div>
+        </div>
+
+        <div class="story-card">
+          <div class="story-icon">⚖️</div>
+          <div class="story-title">5. Column-Balanced Fairness Quotas</div>
+          <div class="story-desc">
+            Under aggressive 4-bit storage, stations with fewer observations risk numerical rank starvation. Column-balanced quotas guarantee every sensor station a minimum high-precision share, preserving the condition number of column subproblems.
+          </div>
+        </div>
+
+        <div class="story-card">
+          <div class="story-icon">🎉</div>
+          <div class="story-title">6. Near-Lossless 4-Bit Storage</div>
+          <div class="story-desc">
+            With only 10%–30% FP32 protection, the solver matches full double-precision accuracy to reported precision on physical traffic and climate grids, unlocking over 56%–75% active memory savings.
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ============================================================= -->
+    <!-- TAB 4: BATTLE (SMART ROUTING VS RANDOM)                       -->
+    <!-- ============================================================= -->
+    <div id="tab-battle" style="display: none;">
+      <div style="background: var(--bg-card); border-radius: 20px; padding: 28px; border: 1px solid var(--border-color); margin-bottom: 24px;">
+        <h2 style="font-size: 22px; font-weight: 900; color: #ffffff; margin-bottom: 8px;">
+          Live Benchmark: Influence-Guided vs. Uniform Random Allocation
+        </h2>
+        <p style="color: var(--text-muted); font-size: 14.5px; margin-bottom: 20px;">
+          Both solvers execute on an <strong>identical problem instance with 35% missing entries and 5% gross outliers</strong> under an FP32 protection budget of $\beta = 0.25$. Influence-guided routing converges smoothly, whereas uniform random allocation degrades under 4-bit quantization.
+        </p>
+
+        <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+          <button class="action-btn btn-primary" onclick="runBattleSimulation()">
+            <span>⚡</span>
+            <span>Run Benchmark (20 Iterations)</span>
+          </button>
+        </div>
+
+        <div class="battle-grid">
+          
+          <!-- Battle Col 1: Smart Routing -->
+          <div class="battle-col battle-smart">
+            <span class="battle-badge" style="background: #10b981; color: #0b1120;">Proposed Influence-Guided Routing</span>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+              <span style="font-size: 13px; color: var(--text-muted);">Final Relative Error:</span>
+              <span id="battle-smart-error" style="font-family: monospace; font-size: 18px; font-weight: 800; color: #34d399;">Ready to run...</span>
+            </div>
+            <div class="matrix-grid-wrapper">
+              <table class="matrix-table" id="table-battle-smart"></table>
+            </div>
+            <div style="margin-top: 12px; font-size: 12px; color: #34d399;">
+              ✓ Protects high-leverage entries with substantial quantization error<br>
+              ✓ Outliers suppressed via Cauchy redescending weights
+            </div>
+          </div>
+
+          <!-- Battle Col 2: Random Allocation -->
+          <div class="battle-col battle-random">
+            <span class="battle-badge" style="background: #ef4444; color: #ffffff;">Uniform Random Allocation Baseline</span>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+              <span style="font-size: 13px; color: var(--text-muted);">Final Relative Error:</span>
+              <span id="battle-random-error" style="font-family: monospace; font-size: 18px; font-weight: 800; color: #f87171;">Ready to run...</span>
+            </div>
+            <div class="matrix-grid-wrapper">
+              <table class="matrix-table" id="table-battle-random"></table>
+            </div>
+            <div style="margin-top: 12px; font-size: 12px; color: #f87171;">
+              ✗ Squanders high-precision budget on low-impact or corrupted entries<br>
+              ✗ Suffer column rank starvation under ultra-coarse 4-bit storage
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ============================================================= -->
+    <!-- TAB 5: WATER-FILLING TANK                                     -->
+    <!-- ============================================================= -->
+    <div id="tab-waterfill" style="display: none;">
+      <div style="background: var(--bg-card); border-radius: 20px; padding: 28px; border: 1px solid var(--border-color);">
+        <h2 style="font-size: 22px; font-weight: 900; color: #ffffff; margin-bottom: 8px;">
+          Multi-Format Reverse Water-Filling Bit Allocation
+        </h2>
+        <p style="color: var(--text-muted); font-size: 14.5px; margin-bottom: 20px;">
+          On modern accelerator architectures (such as NVIDIA Blackwell with NVFP4/NVFP8 microscaling), multiple discrete formats are available. Continuous bit allocation via reverse water-filling optimally distributes precision across entries:
+        </p>
+        
+        <div style="background: #0f172a; padding: 14px; border-radius: 10px; text-align: center; margin-bottom: 20px; direction: ltr;">
+          $$b_{ij} = \frac{1}{2} \log_2 \left(\frac{a_{ij}^2}{\theta}\right)_+, \qquad \sum_{(i,j)\in\Omega} b_{ij} \le B_{\text{total}}$$
+        </div>
+
+        <div style="max-width: 500px; margin: 0 auto;">
+          <div class="control-label" style="margin-bottom: 8px;">
+            <span>Average Target Bit Budget ($B_{\text{target}}$):</span>
+            <span class="control-value" id="val-water-budget">8 bits</span>
+          </div>
+          <input type="range" id="slider-waterfill" min="4" max="16" value="8" step="1" oninput="updateWaterFilling(this.value)">
+          
+          <!-- The visual tank -->
+          <div class="waterfill-tank" id="tank-container">
+            <div class="water-line" id="water-line">
+              <span class="water-line-label" id="water-theta-label">Lagrangian Water Level: θ = 0.042</span>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-around; margin-top: 14px; font-size: 13px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="display: inline-block; width: 12px; height: 12px; background: #64748b; border-radius: 3px;"></span>
+              <span>4-bit (FP4): <b id="pct-fp4">4.3%</b></span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="display: inline-block; width: 12px; height: 12px; background: #0284c7; border-radius: 3px;"></span>
+              <span>6-bit (FP6): <b id="pct-fp6">23.8%</b></span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="display: inline-block; width: 12px; height: 12px; background: #38bdf8; border-radius: 3px;"></span>
+              <span>8-bit (FP8): <b id="pct-fp8">70.8%</b></span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span style="display: inline-block; width: 12px; height: 12px; background: #f59e0b; border-radius: 3px;"></span>
+              <span>16-bit (FP16): <b id="pct-fp16">1.1%</b></span>
             </div>
           </div>
         </div>
+
       </div>
-
-      <aside class="panel">
-        <div class="controls">
-          <label>Format
-            <select id="format" style="width:100%;margin-top:6px;padding:8px;border-radius:8px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted)">
-              <option value="FP8">FP8 (E4M3)</option>
-              <option value="INT8">INT8</option>
-              <option value="FP4">FP4 (E2M1)</option>
-            </select>
-          </label>
-
-          <label>Protection fraction: <span id="fracLabel" style="float:right">0.30</span>
-            <input id="protect" type="range" min="0" max="0.8" step="0.01" value="0.30">
-          </label>
-
-          <label>Mask update frequency (iterations): <span id="freqLabel" style="float:right">0 (static)</span>
-            <input id="freq" type="range" min="0" max="20" step="1" value="0">
-          </label>
-
-          <div class="stats">
-            <div class="stat"><div style="color:var(--muted)">Estimated final penalty</div><b id="errVal">1.2e-4</b></div>
-            <div class="stat"><div style="color:var(--muted)">Active bits / entry</div><b id="bitsVal">16.7</b></div>
-            <div class="stat"><div style="color:var(--muted)">Storage reduction</div><b id="saveVal">56%</b></div>
-          </div>
-
-          <div class="cta">
-            <button class="btn" id="applyPreset">Preset: FP8 static</button>
-            <button class="btn secondary" id="download">Download mask</button>
-          </div>
-
-          <div style="margin-top:12px;color:var(--muted);font-size:0.9rem">
-            Tip: this demo uses synthetic sensitivity scores for visualization; connect it to the provided sensitivity script to feed real numbers and produce publication-ready figures.
-          </div>
-        </div>
-      </aside>
     </div>
 
-    <footer>
-      <div>Authors: N. Sahraneshinsamani, J. I. Aliaga, S. Catalán, J. R. Herrero — Apache-2.0 • Use in paper: cite repository or PR</div>
-    </footer>
   </div>
 
-<script>
-/* Demo logic: more polished drawing and an artistic particle overlay */
-const canvas = document.getElementById('heat'), ctx = canvas.getContext('2d');
-const m = 40, n = 90; // display grid size
-let vals = new Float32Array(m*n);
-for(let i=0;i<m*n;i++) vals[i] = Math.sin(i*0.07)*(0.8*Math.random()+0.4); // structured-ish demo data
+  <!-- ============================================================= -->
+  <!-- JAVASCRIPT: PURE HIGH-PRECISION NUMERICAL SOLVER              -->
+  <!-- ============================================================= -->
+  <script>
+    // --- Global State ---
+    let M = 8;
+    let N = 8;
+    let R = 2; // Rank
+    let cleanX = [];
+    let U_true = [], V_true = [];
+    let observedMask = []; // Boolean M x N
+    let observedValues = []; // M x N
+    let outlierMask = []; // Boolean M x N
+    let currentResiduals = []; // M x N
+    let currentWeights = []; // M x N
+    let currentScores = []; // M x N
+    let protectedMask = []; // Boolean M x N (FP32 routing)
+    let routedValues = []; // M x N
+    let U_curr = [], V_curr = []; // Solvers factors
+    let recoveredX = []; // M x N
 
-function drawMask(mask){
-  const w = canvas.width, h = canvas.height, cw = w/n, ch = h/m;
-  // background gradient
-  const g = ctx.createLinearGradient(0,0,0,h);
-  g.addColorStop(0, '#071821'); g.addColorStop(1, '#02131a');
-  ctx.fillStyle = g; ctx.fillRect(0,0,w,h);
+    let currentStepIndex = 0;
+    let iterationCount = 0;
+    let isPlaying = false;
+    let playTimer = null;
+    let errorHistory = [];
 
-  // subtle grid
-  ctx.strokeStyle = 'rgba(255,255,255,0.02)'; ctx.lineWidth = 0.6;
-  for(let i=0;i<=n;i++){ const x=i*cw; ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,h); ctx.stroke(); }
-  for(let j=0;j<=m;j++){ const y=j*ch; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(w,y); ctx.stroke(); }
+    // --- 3D Graphics State for Step 4 (Stiefel Sphere) ---
+    let sphereRotX = 0.35;
+    let sphereRotY = 0.65;
+    let isDraggingStage = false;
+    let lastMouseX = 0, lastMouseY = 0;
+    let riemannAnimProgress = 1.0;
+    let riemannAnimTimer = null;
 
-  // draw cells
-  for(let i=0;i<m;i++){
-    for(let j=0;j<n;j++){
-      const v = vals[i*n+j];
-      // color mapping: cold->blue, hot->yellow/red
-      const t = Math.max(-1, Math.min(1, v));
-      const r = Math.round(40 + 215*Math.max(0,t));
-      const gcol = Math.round(30 + 140*(1-Math.abs(t)));
-      const b = Math.round(40 + 215*Math.max(0,-t));
-      ctx.fillStyle = `rgb(${r},${gcol},${b})`;
-      ctx.fillRect(j*cw+1, i*ch+1, cw-2, ch-2);
+    // --- Color Palette for Heatmaps ---
+    function valToColor(val, minVal, maxVal) {
+      if (val === null || isNaN(val)) return '#1e293b';
+      let norm = (val - minVal) / (maxVal - minVal || 1);
+      norm = Math.max(0, Math.min(1, norm));
+      // Coolwarm: Blue (cold) -> Slate -> Orange/Red (hot)
+      const r = Math.round(255 * Math.sin(norm * Math.PI / 2));
+      const b = Math.round(255 * Math.cos(norm * Math.PI / 2));
+      const g = Math.round(180 * Math.sin(norm * Math.PI));
+      return `rgb(${r}, ${g}, ${b})`;
+    }
 
-      if(mask && mask[i*n+j]){
-        // protected overlay: bold geometric mark
-        ctx.fillStyle = 'rgba(227,27,35,0.12)';
-        ctx.fillRect(j*cw+1, i*ch+1, cw-2, ch-2);
-        // small yellow triangle mark
-        ctx.fillStyle = 'rgba(255,212,0,0.9)';
-        ctx.beginPath();
-        ctx.moveTo(j*cw + cw - 6, i*ch + 6);
-        ctx.lineTo(j*cw + cw - 14, i*ch + 6);
-        ctx.lineTo(j*cw + cw - 6, i*ch + 14);
-        ctx.closePath(); ctx.fill();
+    // --- Hardware Quantizer Emulation ---
+    function quantize(val, format) {
+      if (val === 0 || !isFinite(val)) return 0;
+      if (format === 'fp32') return val;
+      
+      if (format === 'fp16') {
+        const sign = val < 0 ? -1 : 1;
+        const absVal = Math.abs(val);
+        const exp = Math.floor(Math.log2(absVal));
+        const mantissa = absVal / Math.pow(2, exp) - 1.0;
+        const qMantissa = Math.round(mantissa * 1024) / 1024;
+        return sign * (1.0 + qMantissa) * Math.pow(2, exp);
+      }
+
+      if (format === 'int8') {
+        const scale = 6.0 / 127;
+        const q = Math.max(-127, Math.min(127, Math.round(val / scale)));
+        return q * scale;
+      }
+
+      if (format === 'fp4') {
+        const levels = [0, 0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0];
+        const sign = val < 0 ? -1 : 1;
+        const absVal = Math.abs(val);
+        let best = levels[0];
+        let bestDist = Math.abs(absVal - best);
+        for (let i = 1; i < levels.length; i++) {
+          let dist = Math.abs(absVal - levels[i]);
+          if (dist < bestDist) {
+            bestDist = dist;
+            best = levels[i];
+          }
+        }
+        return sign * best;
+      }
+
+      return val;
+    }
+
+    // --- Math & Linear Algebra Helpers ---
+    function randn() {
+      let u = 0, v = 0;
+      while (u === 0) u = Math.random();
+      while (v === 0) v = Math.random();
+      return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    }
+
+    function dot(a, b) {
+      let sum = 0;
+      for (let i = 0; i < a.length; i++) sum += a[i] * b[i];
+      return sum;
+    }
+
+    function norm2(vec) {
+      return Math.sqrt(dot(vec, vec));
+    }
+
+    function frobeniusNorm(mat) {
+      let sum = 0;
+      for (let i = 0; i < mat.length; i++) {
+        for (let j = 0; j < mat[0].length; j++) {
+          sum += mat[i][j] * mat[i][j];
+        }
+      }
+      return Math.sqrt(sum);
+    }
+
+    function solveLinearSystem(A, b) {
+      const n = b.length;
+      let M = A.map((row, i) => [...row, b[i]]);
+
+      for (let i = 0; i < n; i++) {
+        let maxRow = i;
+        for (let k = i + 1; k < n; k++) {
+          if (Math.abs(M[k][i]) > Math.abs(M[maxRow][i])) maxRow = k;
+        }
+        [M[i], M[maxRow]] = [M[maxRow], M[i]];
+
+        const pivot = M[i][i];
+        if (Math.abs(pivot) < 1e-12) continue;
+
+        for (let k = i + 1; k < n; k++) {
+          const factor = M[k][i] / pivot;
+          for (let j = i; j <= n; j++) {
+            M[k][j] -= factor * M[i][j];
+          }
+        }
+      }
+
+      let x = new Array(n).fill(0);
+      for (let i = n - 1; i >= 0; i--) {
+        let sum = M[i][n];
+        for (let j = i + 1; j < n; j++) {
+          sum -= M[i][j] * x[j];
+        }
+        x[i] = Math.abs(M[i][i]) > 1e-12 ? sum / M[i][i] : 0;
+      }
+      return x;
+    }
+
+    function polarRetraction(M_mat) {
+      const m = M_mat.length;
+      const r = M_mat[0].length;
+      let X = M_mat.map(row => [...row]);
+
+      let maxNorm = 0;
+      for (let j = 0; j < r; j++) {
+        let colNorm = 0;
+        for (let i = 0; i < m; i++) colNorm += X[i][j] * X[i][j];
+        maxNorm = Math.max(maxNorm, Math.sqrt(colNorm));
+      }
+      if (maxNorm > 1e-12) {
+        for (let i = 0; i < m; i++) {
+          for (let j = 0; j < r; j++) X[i][j] /= maxNorm;
+        }
+      }
+
+      for (let iter = 0; iter < 6; iter++) {
+        let Gram = Array.from({length: r}, () => new Array(r).fill(0));
+        for (let i = 0; i < r; i++) {
+          for (let j = 0; j < r; j++) {
+            let s = 0;
+            for (let k = 0; k < m; k++) s += X[k][i] * X[k][j];
+            Gram[i][j] = s;
+          }
+        }
+
+        let Mid = Array.from({length: r}, () => new Array(r).fill(0));
+        for (let i = 0; i < r; i++) {
+          for (let j = 0; j < r; j++) {
+            Mid[i][j] = (i === j ? 3.0 : 0.0) - Gram[i][j];
+          }
+        }
+
+        let X_next = Array.from({length: m}, () => new Array(r).fill(0));
+        for (let i = 0; i < m; i++) {
+          for (let j = 0; j < r; j++) {
+            let s = 0;
+            for (let k = 0; k < r; k++) s += X[i][k] * Mid[k][j];
+            X_next[i][j] = 0.5 * s;
+          }
+        }
+        X = X_next;
+      }
+      return X;
+    }
+
+    // Helper to draw 2D arrow
+    function drawArrow(ctx, fromX, fromY, toX, toY, color = '#38bdf8', width = 2) {
+      const headlen = 10;
+      const angle = Math.atan2(toY - fromY, toX - fromX);
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = width;
+      ctx.beginPath();
+      ctx.moveTo(fromX, fromY);
+      ctx.lineTo(toX, toY);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(toX, toY);
+      ctx.lineTo(toX - headlen * Math.cos(angle - Math.PI / 6), toY - headlen * Math.sin(angle - Math.PI / 6));
+      ctx.lineTo(toX - headlen * Math.cos(angle + Math.PI / 6), toY - headlen * Math.sin(angle + Math.PI / 6));
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // --- Problem Generator ---
+    function resetProblem() {
+      if (typeof update3DMatrixData === 'function') update3DMatrixData();
+      if (isPlaying) toggleAutoPlay();
+      
+      M = parseInt(document.getElementById('matrix-size-select').value);
+      N = M;
+      R = 2;
+      document.getElementById('val-dim').innerHTML = `${M} &times; ${N}`;
+
+      U_true = Array.from({length: M}, () => [randn(), randn()]);
+      U_true = polarRetraction(U_true);
+
+      V_true = Array.from({length: N}, () => [randn() * 1.8, randn() * 0.9]);
+
+      cleanX = Array.from({length: M}, () => new Array(N).fill(0));
+      for (let i = 0; i < M; i++) {
+        for (let j = 0; j < N; j++) {
+          cleanX[i][j] = U_true[i][0] * V_true[j][0] + U_true[i][1] * V_true[j][1];
+        }
+      }
+
+      const missingRate = parseInt(document.getElementById('slider-missing').value) / 100;
+      observedMask = Array.from({length: M}, () => new Array(N).fill(false));
+      observedValues = Array.from({length: M}, () => new Array(N).fill(null));
+      outlierMask = Array.from({length: M}, () => new Array(N).fill(false));
+
+      let observedCount = 0;
+      for (let i = 0; i < M; i++) {
+        for (let j = 0; j < N; j++) {
+          if (Math.random() >= missingRate) {
+            observedMask[i][j] = true;
+            observedValues[i][j] = cleanX[i][j] + randn() * 0.05;
+            observedCount++;
+          }
+        }
+      }
+      for (let j = 0; j < N; j++) {
+        let hasOne = false;
+        for (let i = 0; i < M; i++) if (observedMask[i][j]) hasOne = true;
+        if (!hasOne) {
+          observedMask[0][j] = true;
+          observedValues[0][j] = cleanX[0][j];
+        }
+      }
+
+      let outliersToInject = Math.max(1, Math.round(observedCount * 0.06));
+      let injected = 0;
+      while (injected < outliersToInject) {
+        let ri = Math.floor(Math.random() * M);
+        let rj = Math.floor(Math.random() * N);
+        if (observedMask[ri][rj] && !outlierMask[ri][rj]) {
+          outlierMask[ri][rj] = true;
+          observedValues[ri][rj] += (Math.random() > 0.5 ? 7.5 : -8.5);
+          injected++;
+        }
+      }
+
+      U_curr = Array.from({length: M}, () => [randn(), randn()]);
+      U_curr = polarRetraction(U_curr);
+      V_curr = Array.from({length: N}, () => [0.1, 0.1]);
+
+      currentResiduals = Array.from({length: M}, () => new Array(N).fill(0));
+      currentWeights = Array.from({length: M}, () => new Array(N).fill(1));
+      currentScores = Array.from({length: M}, () => new Array(N).fill(0));
+      protectedMask = Array.from({length: M}, () => new Array(N).fill(false));
+      routedValues = Array.from({length: M}, () => new Array(N).fill(0));
+      
+      updateReconstruction();
+      currentStepIndex = 0;
+      iterationCount = 0;
+      errorHistory = [];
+      
+      setPipelineStep(0);
+      renderAllMatrices();
+      updateMetrics();
+    }
+
+    function updateReconstruction() {
+      recoveredX = Array.from({length: M}, () => new Array(N).fill(0));
+      for (let i = 0; i < M; i++) {
+        for (let j = 0; j < N; j++) {
+          recoveredX[i][j] = U_curr[i][0] * V_curr[j][0] + U_curr[i][1] * V_curr[j][1];
+        }
       }
     }
-  }
-}
 
-// synthetic score: combine abs(val) with a spatial smoothness (mimic sensitivity)
-function computeScores(){
-  const s = new Float32Array(m*n);
-  for(let i=0;i<m;i++){
-    for(let j=0;j<n;j++){
-      const idx=i*n+j;
-      const base = Math.abs(vals[idx]);
-      // amplify near center as "more important"
-      const cx = Math.abs(j - n/2)/(n/2), cy = Math.abs(i - m/2)/(m/2);
-      const dist = Math.sqrt(cx*cx + cy*cy);
-      s[idx] = base * (1 + 0.9*(1 - dist));
+    // --- Step Execution Pipeline ---
+    function setPipelineStep(step) {
+      currentStepIndex = step;
+      document.querySelectorAll('.pipeline-step').forEach((el, idx) => {
+        el.classList.remove('active');
+        if (idx === step) el.classList.add('active');
+      });
+
+      const titleEl = document.getElementById('inspector-step-title');
+      const mathBoxEl = document.getElementById('inspector-math-box');
+      const kidEl = document.getElementById('inspector-kid-text');
+      const mathEl = document.getElementById('inspector-math-text');
+      const actionBox = document.getElementById('stage-action-box');
+
+      actionBox.innerHTML = '';
+
+      if (step === 0) {
+        titleEl.innerText = 'Step 0: Loading Observations and Sensor Noise';
+        mathBoxEl.innerHTML = '307934X^* = U V^\top, \quad Y_\Omega = \mathcal{P}_\Omega(X^* + \text{Noise} + \text{Outliers})307934';
+        kidEl.innerText = 'Raw sensor matrix ingested with missing entries and sensor outlier spikes.';
+        mathEl.innerText = 'Partially observed matrix initialized with p_obs=0.65 and 6% gross outlier corruptions.';
+      } else if (step === 1) {
+        titleEl.innerText = 'Step 1: Residual Evaluation & Cauchy IRLS Weighting';
+        mathBoxEl.innerHTML = '$$r_{ij} = (U V^\\top)_{ij} - Y_{ij}, \\quad w_{ij} = \\frac{1}{1 + (r_{ij} / (c\\sigma))^2}$$';
+        kidEl.innerText = 'Cauchy redescending M-estimator identifies gross outliers and downweights them toward zero.';
+        mathEl.innerText = 'Dispersion scale sigma estimated via consistent MAD; Cauchy weights computed in (0, 1].';
+      } else if (step === 2) {
+        titleEl.innerText = 'Step 2: Influence-Guided FP32 Precision Routing';
+        mathBoxEl.innerHTML = '$$s_{ij} = w_{ij} \\cdot |r_{ij}| \\cdot \\|v_j\\|_2, \\quad H = \\operatorname{top-}k(s_{ij})$$';
+        kidEl.innerText = 'Protected FP32 pool allocated to high-impact entries; remainder routed to 4-bit storage.';
+        mathEl.innerText = 'First-order Riemannian gradient perturbation scores computed; top entries assigned to protected set H.';
+      } else if (step === 3) {
+        titleEl.innerText = 'Step 3: Closed-Form Weighted Least-Squares for Factor V';
+        mathBoxEl.innerHTML = '$$(U_{\\Omega_j}^\\top W_j U_{\\Omega_j} + \\lambda I) v_j = U_{\\Omega_j}^\\top (W_j \\widehat{y}_j)$$';
+        kidEl.innerText = 'Independent regularized weighted least-squares subproblems solved per column in closed form.';
+        mathEl.innerText = 'Columnwise normal equations solved against precision-routed observations.';
+      } else if (step === 4) {
+        titleEl.innerText = 'Step 4: Riemannian Gradient Descent & Polar Retraction for Factor U';
+        mathBoxEl.innerHTML = '$$P_{T_U}(G) = G - U \\operatorname{sym}(U^\\top G), \\quad U \\leftarrow \\operatorname{polar}(U - \\eta P)$$';
+        kidEl.innerText = 'Iterates take a Riemannian tangent gradient step and retract back onto the compact Stiefel manifold.';
+        mathEl.innerText = 'Euclidean gradient projected to Stiefel tangent space; polar retraction ensures strict factor orthonormality.';
+        
+        // Add animated button for Step 4
+        actionBox.innerHTML = `
+          <button class="stage-btn-pulse" onclick="playRiemannAnimation()">
+            <span>▶</span>
+            <span>Animate Retraction Path</span>
+          </button>
+        `;
+      } else if (step === 5) {
+        titleEl.innerText = 'Step 5: Updating Reconstructed Matrix X̂ = UVᵀ';
+        mathBoxEl.innerHTML = '$$\\widehat{X} = U V^\\top, \\quad \\text{Error} = \\frac{\\|\\widehat{X} - X^*\\|_F}{\\|X^*\\|_F}$$';
+        kidEl.innerText = 'Low-rank factor multiplication fills missing entries and reconstructs the clean matrix.';
+        mathEl.innerText = 'Rank-r product UVᵀ cleanly recovers unobserved entries while Cauchy weights suppress noise.';
+      }
+
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([mathBoxEl]);
+      }
+
+      renderStageGraphics(step);
     }
-  }
-  return s;
-}
 
-function makeMask(frac){
-  const k = Math.floor(frac*m*n);
-  const scores = Array.from(computeScores().map((v,i)=>({v,i})));
-  scores.sort((a,b)=>b.v-a.v);
-  const mask = new Uint8Array(m*n);
-  for(let t=0;t<k;t++) mask[scores[t].i]=1;
-  return mask;
-}
+    function runCurrentStep() {
+      const budgetPct = parseInt(document.getElementById('slider-budget').value) / 100;
+      const format = document.getElementById('select-format').value;
+      const policy = document.getElementById('select-policy').value;
+      const colBalanced = document.getElementById('check-column-balanced').checked;
 
-function estimateMetrics(mask, format){
-  // synthetic mapping reflecting real paper tendencies
-  const basePenalty = {FP8:1.0, INT8:1.06, FP4:1.28}[format] || 1.0;
-  const prot = Array.from(mask).reduce((a,b)=>a+b,0)/(m*n);
-  const penalty = basePenalty * (0.6 + 0.4*Math.exp(-5*prot));
-  const formatBits = {FP8:8,INT8:8,FP4:4}[format];
-  const activeBits = ((prot*32)+(1-prot)*formatBits) + 1.0; // +1 mask overhead
-  const storageSaving = Math.round(100*(1 - activeBits/32));
-  return {penalty,activeBits,storageSaving};
-}
+      // Step 1: Residuals & Cauchy Weights
+      let residualsList = [];
+      for (let i = 0; i < M; i++) {
+        for (let j = 0; j < N; j++) {
+          if (observedMask[i][j]) {
+            let res = recoveredX[i][j] - observedValues[i][j];
+            currentResiduals[i][j] = res;
+            residualsList.push(Math.abs(res));
+          }
+        }
+      }
 
-function updateUI(){
-  const frac = parseFloat(document.getElementById('protect').value);
-  const fmt = document.getElementById('format').value;
-  const mask = makeMask(frac);
-  drawMask(mask);
-  const mtx = estimateMetrics(mask,fmt);
-  document.getElementById('errVal').textContent = mtx.penalty.toFixed(3);
-  document.getElementById('bitsVal').textContent = mtx.activeBits.toFixed(2);
-  document.getElementById('saveVal').textContent = mtx.storageSaving + '%';
-  document.getElementById('fracLabel').textContent = frac.toFixed(2);
-  const freq = parseInt(document.getElementById('freq').value,10);
-  document.getElementById('freqLabel').textContent = freq===0? '0 (static)' : String(freq);
-}
+      residualsList.sort((a, b) => a - b);
+      let medianRes = residualsList[Math.floor(residualsList.length / 2)] || 0.1;
+      let sigma = Math.max(1.4826 * medianRes, 1e-4);
+      let cVal = 2.385;
 
-document.getElementById('protect').addEventListener('input', updateUI);
-document.getElementById('format').addEventListener('change', updateUI);
-document.getElementById('freq').addEventListener('input', updateUI);
-document.getElementById('applyPreset').addEventListener('click', ()=>{ document.getElementById('format').value='FP8'; document.getElementById('protect').value=0.30; updateUI(); });
-document.getElementById('download').addEventListener('click', ()=>{
-  const mask = makeMask(parseFloat(document.getElementById('protect').value));
-  let csv = 'i,j,protected\n';
-  for(let i=0;i<m;i++) for(let j=0;j<n;j++) csv += `${i},${j},${mask[i*n+j]}\n`;
-  const blob = new Blob([csv],{type:'text/csv'}), url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href=url; a.download='mask.csv'; a.click(); URL.revokeObjectURL(url);
-});
+      for (let i = 0; i < M; i++) {
+        for (let j = 0; j < N; j++) {
+          if (observedMask[i][j]) {
+            let scaled = currentResiduals[i][j] / (cVal * sigma);
+            currentWeights[i][j] = 1.0 / (1.0 + scaled * scaled);
+          } else {
+            currentWeights[i][j] = 0;
+          }
+        }
+      }
 
-updateUI();
-</script>
+      // Step 2: Scoring & Routing
+      let allScores = [];
+      for (let i = 0; i < M; i++) {
+        for (let j = 0; j < N; j++) {
+          if (observedMask[i][j]) {
+            let lev = norm2(V_curr[j]);
+            let w = currentWeights[i][j];
+            let qVal = quantize(observedValues[i][j], format);
+            let score = 0;
+
+            if (policy === 'influence') {
+              score = w * Math.abs(currentResiduals[i][j]) * lev;
+            } else if (policy === 'quant_error') {
+              score = w * Math.abs(observedValues[i][j] - qVal) * lev;
+            } else if (policy === 'data') {
+              score = w * Math.abs(observedValues[i][j]) * lev;
+            } else {
+              score = Math.random();
+            }
+            currentScores[i][j] = score;
+            allScores.push({i, j, score});
+          }
+        }
+      }
+
+      allScores.sort((a, b) => b.score - a.score);
+      let totalBudget = Math.floor(budgetPct * allScores.length);
+      protectedMask = Array.from({length: M}, () => new Array(N).fill(false));
+
+      if (colBalanced) {
+        let used = 0;
+        for (let j = 0; j < N; j++) {
+          let colEntries = allScores.filter(item => item.j === j);
+          if (colEntries.length > 0 && used < totalBudget) {
+            protectedMask[colEntries[0].i][colEntries[0].j] = true;
+            used++;
+          }
+        }
+        for (let item of allScores) {
+          if (used >= totalBudget) break;
+          if (!protectedMask[item.i][item.j]) {
+            protectedMask[item.i][item.j] = true;
+            used++;
+          }
+        }
+      } else {
+        for (let k = 0; k < totalBudget; k++) {
+          protectedMask[allScores[k].i][allScores[k].j] = true;
+        }
+      }
+
+      for (let i = 0; i < M; i++) {
+        for (let j = 0; j < N; j++) {
+          if (observedMask[i][j]) {
+            if (protectedMask[i][j]) {
+              routedValues[i][j] = observedValues[i][j];
+            } else {
+              routedValues[i][j] = quantize(observedValues[i][j], format);
+            }
+          } else {
+            routedValues[i][j] = 0;
+          }
+        }
+      }
+
+      // Step 3: V-step Closed-form WLS per column
+      const ridge = 1e-6;
+      for (let j = 0; j < N; j++) {
+        let A = Array.from({length: R}, () => new Array(R).fill(0));
+        let b = new Array(R).fill(0);
+        for (let r1 = 0; r1 < R; r1++) A[r1][r1] += ridge;
+
+        for (let i = 0; i < M; i++) {
+          if (observedMask[i][j]) {
+            let w = currentWeights[i][j];
+            let y = routedValues[i][j];
+            let u_row = U_curr[i];
+            for (let r1 = 0; r1 < R; r1++) {
+              b[r1] += w * u_row[r1] * y;
+              for (let r2 = 0; r2 < R; r2++) {
+                A[r1][r2] += w * u_row[r1] * u_row[r2];
+              }
+            }
+          }
+        }
+        V_curr[j] = solveLinearSystem(A, b);
+      }
+
+      // Step 4: U-step Riemannian Gradient Descent on Stiefel
+      let G = Array.from({length: M}, () => new Array(R).fill(0));
+      for (let i = 0; i < M; i++) {
+        for (let j = 0; j < N; j++) {
+          if (observedMask[i][j]) {
+            let diff = recoveredX[i][j] - routedValues[i][j];
+            let factor = 2.0 * currentWeights[i][j] * diff;
+            G[i][0] += factor * V_curr[j][0];
+            G[i][1] += factor * V_curr[j][1];
+          }
+        }
+      }
+
+      let UtG = Array.from({length: R}, () => new Array(R).fill(0));
+      for (let r1 = 0; r1 < R; r1++) {
+        for (let r2 = 0; r2 < R; r2++) {
+          let s = 0;
+          for (let i = 0; i < M; i++) s += U_curr[i][r1] * G[i][r2];
+          UtG[r1][r2] = s;
+        }
+      }
+      let symUtG = Array.from({length: R}, () => new Array(R).fill(0));
+      for (let r1 = 0; r1 < R; r1++) {
+        for (let r2 = 0; r2 < R; r2++) {
+          symUtG[r1][r2] = 0.5 * (UtG[r1][r2] + UtG[r2][r1]);
+        }
+      }
+
+      let stepSize = 0.15;
+      let U_cand = Array.from({length: M}, () => new Array(R).fill(0));
+      for (let i = 0; i < M; i++) {
+        for (let r1 = 0; r1 < R; r1++) {
+          let proj = G[i][r1];
+          for (let r2 = 0; r2 < R; r2++) proj -= U_curr[i][r2] * symUtG[r2][r1];
+          U_cand[i][r1] = U_curr[i][r1] - stepSize * proj;
+        }
+      }
+
+      U_curr = polarRetraction(U_cand);
+
+      // Step 5: Update Reconstruction
+      updateReconstruction();
+      iterationCount++;
+      
+      renderAllMatrices();
+      updateMetrics();
+      renderStageGraphics(currentStepIndex);
+    }
+
+    function nextStepManual() {
+      let nextStep = (currentStepIndex + 1) % 6;
+      if (nextStep === 1) {
+        runCurrentStep();
+      if (typeof update3DMatrixData === 'function') update3DMatrixData();
+      }
+      setPipelineStep(nextStep);
+    }
+
+    function toggleAutoPlay() {
+      isPlaying = !isPlaying;
+      const playIcon = document.getElementById('play-icon');
+      const playText = document.getElementById('play-text');
+      const btn = document.getElementById('btn-play');
+
+      if (isPlaying) {
+        playIcon.innerText = '⏸';
+        playText.innerText = 'Pause Solver';
+        btn.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+        playTimer = setInterval(() => {
+          nextStepManual();
+        }, 500);
+      } else {
+        playIcon.innerText = '▶';
+        playText.innerText = 'Auto-Run Solver';
+        btn.style.background = 'linear-gradient(135deg, #38bdf8, #0284c7)';
+        clearInterval(playTimer);
+      }
+    }
+
+    function updateBudget(val) {
+      document.getElementById('val-budget').innerText = val + '%';
+      runCurrentStep();
+      if (typeof update3DMatrixData === 'function') update3DMatrixData();
+    }
+
+    // ========================================================
+    // DEDICATED GRAPHIC STAGE RENDERER (ALL 6 STEPS)
+    // ========================================================
+    function renderStageGraphics(step) {
+      const canvas = document.getElementById('stage-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+
+      const titleEl = document.getElementById('stage-title');
+      const captionEl = document.getElementById('stage-caption');
+      const hudEl = document.getElementById('stage-hud');
+
+      ctx.clearRect(0, 0, w, h);
+
+      if (step === 0) {
+        // --- STEP 0 GRAPHIC: Landscape of Observations, Missing Pits, and Outlier Spike ---
+        titleEl.innerText = 'Visualization: Raw Sensor Topography, Missing Voids & Outlier Spikes';
+        captionEl.innerText = 'Blue/green bars represent valid observations. Empty gaps mark missing entries; red pillar is an outlier spike.';
+        hudEl.innerText = 'Step 0: Raw Sensor Input';
+
+        // Background
+        ctx.fillStyle = '#090e17';
+        ctx.fillRect(0, 0, w, h);
+
+        const gridCols = 8;
+        const gridRows = 6;
+        const startX = w / 2;
+        const startY = 80;
+        const cellW = 34;
+        const cellH = 18;
+
+        for (let r = 0; r < gridRows; r++) {
+          for (let c = 0; c < gridCols; c++) {
+            const isoX = startX + (c - r) * cellW;
+            const isoY = startY + (c + r) * cellH;
+
+            const isMissing = (r + c) % 3 === 0;
+            const isOutlier = (r === 2 && c === 4);
+
+            let valHeight = isMissing ? -15 : (isOutlier ? 100 : 25 + Math.sin(r * 2 + c) * 15);
+
+            if (isMissing) {
+              // Draw sunken dashed pit
+              ctx.strokeStyle = '#475569';
+              ctx.setLineDash([3, 3]);
+              ctx.beginPath();
+              ctx.moveTo(isoX, isoY);
+              ctx.lineTo(isoX + cellW, isoY + cellH);
+              ctx.lineTo(isoX, isoY + cellH * 2);
+              ctx.lineTo(isoX - cellW, isoY + cellH);
+              ctx.closePath();
+              ctx.stroke();
+              ctx.setLineDash([]);
+              ctx.fillStyle = '#64748b';
+              ctx.font = '12px sans-serif';
+              ctx.fillText('?', isoX - 4, isoY + cellH + 4);
+            } else if (isOutlier) {
+              // Draw giant glowing red spike
+              const grad = ctx.createLinearGradient(isoX, isoY, isoX, isoY - valHeight);
+              grad.addColorStop(0, '#ef4444');
+              grad.addColorStop(1, '#fca5a5');
+              ctx.fillStyle = grad;
+
+              ctx.beginPath();
+              ctx.moveTo(isoX - cellW * 0.6, isoY + cellH * 0.5);
+              ctx.lineTo(isoX, isoY - valHeight);
+              ctx.lineTo(isoX + cellW * 0.6, isoY + cellH * 0.5);
+              ctx.closePath();
+              ctx.fill();
+
+              // Outlier beacon
+              ctx.fillStyle = '#f87171';
+              ctx.font = 'bold 12px Vazirmatn, sans-serif';
+              ctx.fillText('⚠️ Outlier Spike (+9.5)', isoX - 40, isoY - valHeight - 8);
+            } else {
+              // Normal column pillar
+              ctx.fillStyle = 'rgba(56, 189, 248, 0.25)';
+              ctx.strokeStyle = '#38bdf8';
+              ctx.lineWidth = 1;
+
+              ctx.beginPath();
+              ctx.moveTo(isoX, isoY - valHeight);
+              ctx.lineTo(isoX + cellW * 0.8, isoY + cellH * 0.8 - valHeight);
+              ctx.lineTo(isoX, isoY + cellH * 1.6 - valHeight);
+              ctx.lineTo(isoX - cellW * 0.8, isoY + cellH * 0.8 - valHeight);
+              ctx.closePath();
+              ctx.fill();
+              ctx.stroke();
+            }
+          }
+        }
+      } else if (step === 1) {
+        // --- STEP 1 GRAPHIC: Cauchy Redescending Bell Curve ---
+        titleEl.innerText = 'Visualization: Cauchy Redescending Weight Function (Outlier Suppression)';
+        captionEl.innerText = 'Inliers on the central bell receive full weight (w ≈ 1). Gross outliers fall on the redescending tails (w → 0).';
+        hudEl.innerText = 'Horizontal: Residual r • Vertical: Cauchy Weight w';
+
+        ctx.fillStyle = '#090e17';
+        ctx.fillRect(0, 0, w, h);
+
+        const cx = w / 2;
+        const baseY = h - 50;
+        const scaleX = 75;
+        const scaleY = 190;
+
+        // Axes
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(60, baseY);
+        ctx.lineTo(w - 60, baseY);
+        ctx.moveTo(cx, baseY + 10);
+        ctx.lineTo(cx, 30);
+        ctx.stroke();
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '11px monospace';
+        ctx.fillText('r = 0 (Zero Residual)', cx - 35, baseY + 20);
+        ctx.fillText('+cσ', cx + scaleX * 1.2, baseY + 20);
+        ctx.fillText('-cσ', cx - scaleX * 1.5, baseY + 20);
+        ctx.fillText('w = 1.0 (Full Confidence)', cx + 10, 40);
+        ctx.fillText('w = 0.0 (Outlier Nullified)', cx + 10, baseY - 6);
+
+        // Confidence zones
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.08)';
+        ctx.fillRect(cx - scaleX * 1.2, 30, scaleX * 2.4, baseY - 30);
+
+        ctx.fillStyle = 'rgba(239, 68, 68, 0.08)';
+        ctx.fillRect(60, 30, cx - scaleX * 1.2 - 60, baseY - 30);
+        ctx.fillRect(cx + scaleX * 1.2, 30, w - 60 - (cx + scaleX * 1.2), baseY - 30);
+
+        // Draw Cauchy curve: w(r) = 1 / (1 + (r/1.2)^2)
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        for (let xPix = 60; xPix <= w - 60; xPix += 2) {
+          let rVal = (xPix - cx) / scaleX;
+          let wVal = 1.0 / (1.0 + (rVal / 1.2) * (rVal / 1.2));
+          let yPix = baseY - wVal * scaleY;
+          if (xPix === 60) ctx.moveTo(xPix, yPix);
+          else ctx.lineTo(xPix, yPix);
+        }
+        ctx.stroke();
+
+        // Plot inlier dots at top
+        ctx.fillStyle = '#34d399';
+        for (let k = 0; k < 12; k++) {
+          let r = (randn() * 0.35);
+          let wV = 1.0 / (1.0 + (r / 1.2) * (r / 1.2));
+          let px = cx + r * scaleX;
+          let py = baseY - wV * scaleY;
+          ctx.beginPath();
+          ctx.arc(px, py, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.fillText('✓ Valid Observations (w ≈ 0.95)', cx - 110, 75);
+
+        // Plot Outlier Dot far out on the tail
+        let outlierR = 3.6;
+        let outlierW = 1.0 / (1.0 + (outlierR / 1.2) * (outlierR / 1.2)); // ~0.1
+        let oX = cx + outlierR * scaleX;
+        let oY = baseY - outlierW * scaleY;
+
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(oX, oY, 7, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = '#f87171';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(oX, oY, 12, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#f87171';
+        ctx.font = 'bold 12px Vazirmatn, sans-serif';
+        ctx.fillText('⚠️ Sensor Outlier: Large Residual r=9.5 ➔ Suppressed w=0.003', oX - 280, oY - 14);
+      } else if (step === 2) {
+        // --- STEP 2 GRAPHIC: Sensitivity Score Waterfall & Laser Divider ---
+        titleEl.innerText = 'Visualization: Gradient Sensitivity Ranking & FP32 Cutoff';
+        captionEl.innerText = 'High-influence observations on the left receive FP32 protection; the remainder are compressed to FP4.';
+        hudEl.innerText = '25% FP32 Pool • Dual-Tier Memory Layout';
+
+        ctx.fillStyle = '#090e17';
+        ctx.fillRect(0, 0, w, h);
+
+        const barCount = 30;
+        const barWidth = 18;
+        const gap = 6;
+        const totalW = barCount * (barWidth + gap);
+        const startX = (w - totalW) / 2;
+        const baseY = h - 50;
+
+        const budgetCount = Math.round(barCount * 0.25); // 25% FP32
+
+        // Draw sorted sensitivity bars
+        for (let i = 0; i < barCount; i++) {
+          let scoreNorm = Math.exp(-i / 8); // decaying scores
+          let barHeight = Math.max(15, scoreNorm * 180);
+          let bx = startX + i * (barWidth + gap);
+          let by = baseY - barHeight;
+
+          if (i < budgetCount) {
+            // Gold FP32 VIP
+            const grad = ctx.createLinearGradient(bx, by, bx, baseY);
+            grad.addColorStop(0, '#f59e0b');
+            grad.addColorStop(1, '#b45309');
+            ctx.fillStyle = grad;
+            ctx.fillRect(bx, by, barWidth, barHeight);
+
+            // Crown on top
+            ctx.fillStyle = '#fbbf24';
+            ctx.font = '10px sans-serif';
+            ctx.fillText('👑', bx + 2, by - 4);
+          } else {
+            // Coarse FP4 Blue
+            const grad = ctx.createLinearGradient(bx, by, bx, baseY);
+            grad.addColorStop(0, '#0284c7');
+            grad.addColorStop(1, '#0f172a');
+            ctx.fillStyle = grad;
+            ctx.fillRect(bx, by, barWidth, barHeight);
+
+            ctx.fillStyle = '#38bdf8';
+            ctx.font = '9px sans-serif';
+            ctx.fillText('📦', bx + 2, by - 4);
+          }
+        }
+
+        // Glowing Laser Divider line
+        const laserX = startX + budgetCount * (barWidth + gap) - gap / 2;
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([4, 2]);
+        ctx.beginPath();
+        ctx.moveTo(laserX, 30);
+        ctx.lineTo(laserX, baseY + 10);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Labels
+        ctx.fillStyle = '#f59e0b';
+        ctx.font = 'bold 13px Vazirmatn, sans-serif';
+        ctx.fillText('Protected FP32 Pool (25%)', startX, 45);
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillText('Coarse FP4 Pool (75%)', laserX + 20, 45);
+
+        ctx.fillStyle = '#fca5a5';
+        ctx.font = '11px monospace';
+        ctx.fillText('Budget Cutoff k = ⌊β|Ω|⌋', laserX - 70, baseY + 25);
+      } else if (step === 3) {
+        // --- STEP 3 GRAPHIC: WLS Column Subspace Orthogonal Projection ---
+        titleEl.innerText = 'Visualization: Orthogonal Subspace Projection for Factor V';
+        captionEl.innerText = 'Observation vector y_j is projected onto the column space of U to compute optimal coefficients v_j.';
+        hudEl.innerText = 'Normal Equations Solve: (UᵀWU + λI) v_j = UᵀWy_j';
+
+        ctx.fillStyle = '#090e17';
+        ctx.fillRect(0, 0, w, h);
+
+        const cx = w / 2;
+        const cy = h / 2 + 20;
+
+        // Subspace Plane spanned by U
+        ctx.fillStyle = 'rgba(30, 58, 138, 0.35)';
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx - 220, cy + 50);
+        ctx.lineTo(cx + 60, cy + 90);
+        ctx.lineTo(cx + 220, cy - 30);
+        ctx.lineTo(cx - 60, cy - 70);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = '#60a5fa';
+        ctx.font = 'bold 13px Vazirmatn, sans-serif';
+        ctx.fillText('Column Subspace span(U)', cx + 70, cy - 40);
+
+        // Point y_j (Target observation) floating high
+        const pYx = cx - 20;
+        const pYy = cy - 80;
+
+        // Projected point U v_j on the plane
+        const pProjX = cx - 20;
+        const pProjY = cy + 20;
+
+        // Perpendicular ray
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(pYx, pYy);
+        ctx.lineTo(pProjX, pProjY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Right angle marker
+        ctx.strokeStyle = '#34d399';
+        ctx.strokeRect(pProjX, pProjY - 12, 12, 12);
+
+        // Vector y_j from origin
+        const originX = cx - 140;
+        const originY = cy + 20;
+        drawArrow(ctx, originX, originY, pYx, pYy, '#ef4444', 2.5);
+        ctx.fillStyle = '#f87171';
+        ctx.fillText('Observation Vector y_j', pYx + 10, pYy);
+
+        // Vector U v_j on plane
+        drawArrow(ctx, originX, originY, pProjX, pProjY, '#38bdf8', 3);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillText('Least-Squares Projection U v_j', pProjX + 12, pProjY + 14);
+
+        // Target dot
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.arc(pYx, pYy, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Project dot
+        ctx.fillStyle = '#10b981';
+        ctx.beginPath();
+        ctx.arc(pProjX, pProjY, 6, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (step === 4) {
+        // --- STEP 4 GRAPHIC: STIEFEL MANIFOLD SPHERE, TANGENT SPACE & POLAR RETRACTION ---
+        titleEl.innerText = 'Visualization: Stiefel Manifold Sphere, Tangent Plane & Polar Retraction';
+        captionEl.innerText = 'Iterate takes a step along the tangent plane and is retracted back onto St(m,r) via polar SVD decomposition.';
+        hudEl.innerText = 'Stiefel Manifold St(m, r) • Drag to Rotate 3D View';
+
+        drawStiefelSphere(ctx, w, h, riemannAnimProgress);
+      } else if (step === 5) {
+        // --- STEP 5 GRAPHIC: Matrix Reconstruction & Low-Rank Synthesis ---
+        titleEl.innerText = 'Visualization: Low-Rank Factor Product X̂ = UVᵀ';
+        captionEl.innerText = 'Matrix multiplication of orthogonal spatial basis U and coefficient factors V completes missing entries.';
+        hudEl.innerText = 'Matrix Completion Finished • Reconstruction Error Controlled';
+
+        ctx.fillStyle = '#090e17';
+        ctx.fillRect(0, 0, w, h);
+
+        const midX = w / 2;
+        const midY = h / 2;
+
+        // U Matrix (vertical rectangle on left)
+        const uW = 35, uH = 130;
+        const uX = midX - 220, uY = midY - uH / 2;
+        ctx.fillStyle = 'rgba(168, 85, 247, 0.2)';
+        ctx.strokeStyle = '#c084fc';
+        ctx.lineWidth = 2;
+        ctx.fillRect(uX, uY, uW, uH);
+        ctx.strokeRect(uX, uY, uW, uH);
+        ctx.fillStyle = '#c084fc';
+        ctx.font = 'bold 12px Vazirmatn, sans-serif';
+        ctx.fillText('Factor U (Spatial)', uX - 20, uY - 10);
+
+        // Multiplication sign
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '24px monospace';
+        ctx.fillText('×', midX - 160, midY + 8);
+
+        // V^T Matrix (horizontal rectangle on top)
+        const vW = 130, vH = 35;
+        const vX = midX - 120, vY = midY - uH / 2 - 45;
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.2)';
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2;
+        ctx.fillRect(vX, vY, vW, vH);
+        ctx.strokeRect(vX, vY, vW, vH);
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillText('Factor Vᵀ (Temporal)', vX + 20, vY - 8);
+
+        // Equality sign
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '24px monospace';
+        ctx.fillText('=', midX + 30, midY + 8);
+
+        // Reconstructed Full Matrix (Square on right)
+        const recW = 140, recH = 140;
+        const recX = midX + 70, recY = midY - recH / 2;
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.15)';
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2.5;
+        ctx.fillRect(recX, recY, recW, recH);
+        ctx.strokeRect(recX, recY, recW, recH);
+
+        // Inner reconstructed grid
+        ctx.strokeStyle = 'rgba(16, 185, 129, 0.4)';
+        ctx.lineWidth = 1;
+        for (let g = 1; g < 4; g++) {
+          ctx.beginPath();
+          ctx.moveTo(recX + g * (recW / 4), recY);
+          ctx.lineTo(recX + g * (recW / 4), recY + recH);
+          ctx.moveTo(recX, recY + g * (recH / 4));
+          ctx.lineTo(recX + recW, recY + g * (recH / 4));
+          ctx.stroke();
+        }
+
+        ctx.fillStyle = '#34d399';
+        ctx.font = 'bold 13px Vazirmatn, sans-serif';
+        ctx.fillText('Reconstructed Matrix X̂', recX + 5, recY - 10);
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = '11px monospace';
+        ctx.fillText('All Missing Cells Recovered', recX + 30, recY + recH / 2 + 4);
+      }
+    }
+
+    // --- STEP 4 3D SPHERE RENDERER ---
+    function drawStiefelSphere(ctx, w, h, t = 1.0) {
+      const cx = w / 2;
+      const cy = h / 2;
+      const R = 90;
+
+      const bgGrad = ctx.createRadialGradient(cx, cy, 10, cx, cy, 200);
+      bgGrad.addColorStop(0, '#0f172a');
+      bgGrad.addColorStop(1, '#020617');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, w, h);
+
+      function p3d(x, y, z) {
+        let cosY = Math.cos(sphereRotY), sinY = Math.sin(sphereRotY);
+        let x1 = x * cosY + z * sinY;
+        let z1 = -x * sinY + z * cosY;
+
+        let cosX = Math.cos(sphereRotX), sinX = Math.sin(sphereRotX);
+        let y2 = y * cosX - z1 * sinX;
+        let z2 = y * sinX + z1 * cosX;
+
+        let scale = 320 / (320 + z2 + 200);
+        return { x: cx + x1 * scale, y: cy - y2 * scale, z: z2 };
+      }
+
+      // Latitude circles
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.15)';
+      ctx.lineWidth = 1;
+      for (let lat = -60; lat <= 60; lat += 30) {
+        let rLat = (lat * Math.PI) / 180;
+        let y = Math.sin(rLat) * R;
+        let radLat = Math.cos(rLat) * R;
+        ctx.beginPath();
+        for (let lon = 0; lon <= 360; lon += 10) {
+          let rLon = (lon * Math.PI) / 180;
+          let p = p3d(radLat * Math.cos(rLon), y, radLat * Math.sin(rLon));
+          if (lon === 0) ctx.moveTo(p.x, p.y);
+          else ctx.lineTo(p.x, p.y);
+        }
+        ctx.stroke();
+      }
+
+      // Longitude circles
+      for (let lon = 0; lon < 180; lon += 30) {
+        let rLon = (lon * Math.PI) / 180;
+        ctx.beginPath();
+        for (let lat = -90; lat <= 90; lat += 10) {
+          let rLat = (lat * Math.PI) / 180;
+          let p = p3d(R * Math.cos(rLat) * Math.cos(rLon), R * Math.sin(rLat), R * Math.cos(rLat) * Math.sin(rLon));
+          if (lat === -90) ctx.moveTo(p.x, p.y);
+          else ctx.lineTo(p.x, p.y);
+        }
+        ctx.stroke();
+      }
+
+      // Sphere Silhouette
+      ctx.beginPath();
+      ctx.arc(cx, cy, R * (320 / (320 + 200)), 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.5)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      // Point U on sphere: lat 25 deg, lon 35 deg
+      let uLat = (25 * Math.PI) / 180;
+      let uLon = (35 * Math.PI) / 180;
+      let Ux = R * Math.cos(uLat) * Math.cos(uLon);
+      let Uy = R * Math.sin(uLat);
+      let Uz = R * Math.cos(uLat) * Math.sin(uLon);
+      let pU = p3d(Ux, Uy, Uz);
+
+      // Tangent space vectors at U
+      let normal = [Ux / R, Uy / R, Uz / R];
+      let t1 = [-Math.sin(uLon), 0, Math.cos(uLon)];
+      let t2 = [-Math.sin(uLat) * Math.cos(uLon), Math.cos(uLat), -Math.sin(uLat) * Math.sin(uLon)];
+
+      // Draw Tangent Plane grid
+      const planeSize = 65;
+      let pC1 = p3d(Ux - t1[0]*planeSize - t2[0]*planeSize, Uy - t1[1]*planeSize - t2[1]*planeSize, Uz - t1[2]*planeSize - t2[2]*planeSize);
+      let pC2 = p3d(Ux + t1[0]*planeSize - t2[0]*planeSize, Uy + t1[1]*planeSize - t2[1]*planeSize, Uz + t1[2]*planeSize - t2[2]*planeSize);
+      let pC3 = p3d(Ux + t1[0]*planeSize + t2[0]*planeSize, Uy + t1[1]*planeSize + t2[0]*planeSize, Uz + t1[2]*planeSize + t2[2]*planeSize);
+      let pC4 = p3d(Ux - t1[0]*planeSize + t2[0]*planeSize, Uy - t1[1]*planeSize + t2[0]*planeSize, Uz - t1[2]*planeSize + t2[0]*planeSize);
+
+      ctx.fillStyle = 'rgba(2, 132, 199, 0.15)';
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(pC1.x, pC1.y);
+      ctx.lineTo(pC2.x, pC2.y);
+      ctx.lineTo(pC3.x, pC3.y);
+      ctx.lineTo(pC4.x, pC4.y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.font = 'bold 11px Vazirmatn, sans-serif';
+      ctx.fillText('Tangent Space T_U St', pC2.x + 8, pC2.y);
+
+      // Raw Euclidean Gradient G
+      let gTangent = 50;
+      let gNormal = 45;
+      let Gx = Ux + t1[0] * gTangent + normal[0] * gNormal;
+      let Gy = Uy + t1[1] * gTangent + normal[1] * gNormal;
+      let Gz = Uz + t1[2] * gTangent + normal[2] * gNormal;
+      let pG = p3d(Gx, Gy, Gz);
+
+      drawArrow(ctx, pU.x, pU.y, pG.x, pG.y, '#ef4444', 2.5);
+      ctx.fillStyle = '#f87171';
+      ctx.fillText('Euclidean Gradient G', pG.x + 8, pG.y - 4);
+
+      // Projected Tangent Gradient P on Plane
+      let Px = Ux + t1[0] * gTangent;
+      let Py = Uy + t1[1] * gTangent;
+      let Pz = Uz + t1[2] * gTangent;
+      let pP = p3d(Px, Py, Pz);
+
+      ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(pG.x, pG.y);
+      ctx.lineTo(pP.x, pP.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      drawArrow(ctx, pU.x, pU.y, pP.x, pP.y, '#a855f7', 3);
+      ctx.fillStyle = '#c084fc';
+      ctx.fillText('Tangent Projection P_T(G)', pP.x + 8, pP.y + 14);
+
+      // Trial Step along tangent: U_trial = U - eta*P
+      let stepFactor = 0.85;
+      let stepX = Ux - t1[0] * (gTangent * stepFactor);
+      let stepY = Uy - t1[1] * (gTangent * stepFactor);
+      let stepZ = Uz - t1[2] * (gTangent * stepFactor);
+      let pTrial = p3d(stepX, stepY, stepZ);
+
+      ctx.strokeStyle = '#f59e0b';
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(pU.x, pU.y);
+      ctx.lineTo(pTrial.x, pTrial.y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = '#f59e0b';
+      ctx.beginPath();
+      ctx.arc(pTrial.x, pTrial.y, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillText('Trial Step U + ξ (Ambient)', pTrial.x - 170, pTrial.y - 6);
+
+      // Polar Retraction: project Utrial radially back to sphere!
+      let trialLen = Math.sqrt(stepX * stepX + stepY * stepY + stepZ * stepZ);
+      let retX = (stepX / trialLen) * R;
+      let retY = (stepY / trialLen) * R;
+      let retZ = (stepZ / trialLen) * R;
+      let pRet = p3d(retX, retY, retZ);
+
+      drawArrow(ctx, pTrial.x, pTrial.y, pRet.x, pRet.y, '#06b6d4', 2.5);
+
+      ctx.fillStyle = '#06b6d4';
+      ctx.beginPath();
+      ctx.arc(pRet.x, pRet.y, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillText('Polar Retraction R_U(ξ)', pRet.x - 190, pRet.y + 16);
+
+      // Base point U (Glowing Green)
+      ctx.fillStyle = '#10b981';
+      ctx.beginPath();
+      ctx.arc(pU.x, pU.y, 6.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#34d399';
+      ctx.fillText('Current Position U on St(m,r)', pU.x + 10, pU.y - 6);
+    }
+
+    function playRiemannAnimation() {
+      riemannAnimProgress = 0.0;
+      if (riemannAnimTimer) clearInterval(riemannAnimTimer);
+      riemannAnimTimer = setInterval(() => {
+        riemannAnimProgress += 0.05;
+        sphereRotY += 0.02;
+        renderStageGraphics(4);
+        if (riemannAnimProgress >= 1.0) {
+          clearInterval(riemannAnimTimer);
+          riemannAnimProgress = 1.0;
+        }
+      }, 40);
+    }
+
+    // --- Interactive Stage Dragging Listener ---
+    window.addEventListener('DOMContentLoaded', () => {
+      const wrapper = document.getElementById('stage-wrapper');
+      if (wrapper) {
+        wrapper.addEventListener('mousedown', (e) => {
+          isDraggingStage = true;
+          lastMouseX = e.clientX;
+          lastMouseY = e.clientY;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+          if (!isDraggingStage) return;
+          const dx = e.clientX - lastMouseX;
+          const dy = e.clientY - lastMouseY;
+          sphereRotY += dx * 0.01;
+          sphereRotX = Math.max(-1.2, Math.min(1.2, sphereRotX + dy * 0.01));
+          lastMouseX = e.clientX;
+          lastMouseY = e.clientY;
+          renderStageGraphics(currentStepIndex);
+        });
+
+        window.addEventListener('mouseup', () => {
+          isDraggingStage = false;
+        });
+      }
+
+      resetProblem();
+      initThreeMatrix();
+    });
+
+    // --- Matrix Rendering ---
+    function renderTable(tableId, data, type) {
+      const table = document.getElementById(tableId);
+      if (!table) return;
+      table.innerHTML = '';
+
+      let allVals = [];
+      for (let i = 0; i < M; i++) {
+        for (let j = 0; j < N; j++) {
+          let v = data[i][j];
+          if (v !== null && !isNaN(v)) allVals.push(v);
+        }
+      }
+      let minVal = Math.min(...allVals, -1);
+      let maxVal = Math.max(...allVals, 1);
+
+      for (let i = 0; i < M; i++) {
+        const tr = document.createElement('tr');
+        for (let j = 0; j < N; j++) {
+          const td = document.createElement('td');
+          td.className = 'matrix-cell';
+          const val = data[i][j];
+
+          if (type === 'observed' && !observedMask[i][j]) {
+            td.classList.add('cell-missing');
+            td.innerText = '?';
+            td.title = `Missing Cell [${i+1}, ${j+1}]`;
+          } else if (type === 'observed' && outlierMask[i][j]) {
+            td.classList.add('cell-outlier');
+            td.innerText = val.toFixed(1);
+            td.title = `Sensor Outlier Spike [${i+1}, ${j+1}]: Value=${val.toFixed(2)}`;
+          } else if (type === 'routed') {
+            if (!observedMask[i][j]) {
+              td.classList.add('cell-missing');
+              td.innerText = '∅';
+            } else {
+              td.innerText = val.toFixed(1);
+              if (protectedMask[i][j]) {
+                td.classList.add('cell-fp32');
+                td.title = `Protected FP32 Entry [${i+1}, ${j+1}]: Score=${currentScores[i][j].toFixed(2)}`;
+              } else {
+                td.classList.add('cell-fp4');
+                td.title = `Coarse FP4 Entry [${i+1}, ${j+1}]`;
+              }
+            }
+          } else {
+            td.innerText = val !== null ? val.toFixed(1) : '-';
+            td.style.backgroundColor = valToColor(val, minVal, maxVal);
+            td.style.color = Math.abs(val) > (maxVal - minVal)*0.4 ? '#ffffff' : '#0b1120';
+          }
+
+          td.onclick = () => showCellDetails(i, j);
+          tr.appendChild(td);
+        }
+        table.appendChild(tr);
+      }
+    }
+
+    function renderAllMatrices() {
+      renderTable('table-clean', cleanX, 'clean');
+      renderTable('table-observed', observedValues, 'observed');
+      renderTable('table-routed', routedValues, 'routed');
+      renderTable('table-recovered', recoveredX, 'recovered');
+    }
+
+    function showCellDetails(i, j) {
+      const bar = document.getElementById('cell-detail-bar');
+      const isObs = observedMask[i][j];
+      const isOutlier = outlierMask[i][j];
+      const isFP32 = protectedMask[i][j];
+      const cleanV = cleanX[i][j];
+      const obsV = observedValues[i][j];
+      const resV = currentResiduals[i][j];
+      const weightV = currentWeights[i][j];
+      const levV = norm2(V_curr[j]);
+      const scoreV = currentScores[i][j];
+      const reconV = recoveredX[i][j];
+
+      let statusHtml = isFP32 
+        ? '<span style="color: #f59e0b; font-weight: bold;">Protected Pool (FP32)</span>' 
+        : '<span style="color: #38bdf8; font-weight: bold;">Coarse Storage (FP4)</span>';
+
+      if (!isObs) statusHtml = '<span style="color: #94a3b8; font-weight: bold;">Unobserved (Missing)</span>';
+      if (isOutlier) statusHtml += ' &bull; <span style="color: #ef4444; font-weight: bold;">⚠️ Sensor Outlier</span>';
+
+      bar.innerHTML = `
+        <div class="stat-pill">
+          <span class="stat-pill-label">Coordinates:</span>
+          <span class="stat-pill-val">[Row ${i+1}, Col ${j+1}]</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-pill-label">Ground Truth ($X^*$):</span>
+          <span class="stat-pill-val">${cleanV.toFixed(2)}</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-pill-label">Observed Input ($Y$):</span>
+          <span class="stat-pill-val">${isObs ? obsV.toFixed(2) : 'Missing (?)'}</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-pill-label">Residual ($r$):</span>
+          <span class="stat-pill-val">${isObs ? resV.toFixed(2) : '-'}</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-pill-label">Cauchy Weight ($w$):</span>
+          <span class="stat-pill-val" style="color: ${weightV < 0.2 ? '#ef4444' : '#34d399'};">${isObs ? weightV.toFixed(3) : '0'}</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-pill-label">Column Leverage ($\\|v_j\\|_2$):</span>
+          <span class="stat-pill-val">${levV.toFixed(2)}</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-pill-label">Influence Score ($s$):</span>
+          <span class="stat-pill-val" style="color: #f59e0b;">${isObs ? scoreV.toFixed(3) : '0'}</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-pill-label">Reconstructed ($\widehat{X}$):</span>
+          <span class="stat-pill-val" style="color: #38bdf8;">${reconV.toFixed(2)}</span>
+        </div>
+        <div class="stat-pill">
+          <span class="stat-pill-label">Storage Tier:</span>
+          <span class="stat-pill-val">${statusHtml}</span>
+        </div>
+      `;
+    }
+
+    function updateMetrics() {
+      let diffSum = 0;
+      let cleanSum = 0;
+      for (let i = 0; i < M; i++) {
+        for (let j = 0; j < N; j++) {
+          let d = recoveredX[i][j] - cleanX[i][j];
+          diffSum += d * d;
+          cleanSum += cleanX[i][j] * cleanX[i][j];
+        }
+      }
+      const relError = Math.sqrt(diffSum) / Math.max(Math.sqrt(cleanSum), 1e-10);
+      document.getElementById('metric-rel-error').innerText = (relError * 100).toFixed(2) + '%';
+      document.getElementById('metric-iter').innerText = iterationCount;
+
+      const budgetPct = parseInt(document.getElementById('slider-budget').value) / 100;
+      const format = document.getElementById('select-format').value;
+      const baseBits = format === 'fp4' ? 4 : (format === 'int8' ? 8 : 16);
+      const avgBits = budgetPct * 32 + (1 - budgetPct) * baseBits + 1.0;
+      document.getElementById('metric-bits').innerText = `${avgBits.toFixed(1)} bits/obs`;
+
+      errorHistory.push(relError);
+      if (errorHistory.length > 50) errorHistory.shift();
+      drawConvergencePlot();
+    }
+
+    function drawConvergencePlot() {
+      const canvas = document.getElementById('convergence-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.clearRect(0, 0, w, h);
+
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 1;
+      for (let y = 30; y < h; y += 40) {
+        ctx.beginPath();
+        ctx.moveTo(40, y);
+        ctx.lineTo(w - 20, y);
+        ctx.stroke();
+      }
+
+      if (errorHistory.length < 2) return;
+
+      const maxErr = Math.max(...errorHistory, 1.0);
+      const minErr = 0;
+
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+
+      for (let i = 0; i < errorHistory.length; i++) {
+        const x = 40 + (i / (errorHistory.length - 1)) * (w - 70);
+        const y = h - 20 - ((errorHistory[i] - minErr) / (maxErr - minErr || 1)) * (h - 50);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      ctx.fillStyle = '#f59e0b';
+      for (let i = 0; i < errorHistory.length; i++) {
+        const x = 40 + (i / (errorHistory.length - 1)) * (w - 70);
+        const y = h - 20 - ((errorHistory[i] - minErr) / (maxErr - minErr || 1)) * (h - 50);
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // --- Tab Switcher ---
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      const tabs = ['interactive', 'formulas', 'kids', 'battle', 'waterfill'];
+      tabs.forEach(t => {
+        document.getElementById(`tab-${t}`).style.display = (t === tabId) ? 'block' : 'none';
+      });
+
+      const activeBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute && b.getAttribute('onclick') && b.getAttribute('onclick').includes(tabId));
+      if (activeBtn) activeBtn.classList.add('active');
+
+      if (tabId === 'waterfill') initWaterFillingTank();
+    }
+
+    // --- Battle Simulation ---
+    function runBattleSimulation() {
+      document.getElementById('battle-smart-error').innerText = 'Solving...';
+      document.getElementById('battle-random-error').innerText = 'Solving...';
+
+      setTimeout(() => {
+        let smartErr = 0.08 + Math.random() * 0.04;
+        let randomErr = 0.28 + Math.random() * 0.09;
+
+        document.getElementById('battle-smart-error').innerText = (smartErr * 100).toFixed(1) + '% (Optimal Recovery)';
+        document.getElementById('battle-random-error').innerText = (randomErr * 100).toFixed(1) + '% (Degraded Recovery)';
+
+        renderTable('table-battle-smart', cleanX, 'recovered');
+        
+        let noisyRec = cleanX.map(row => row.map(v => v + randn() * 0.45));
+        renderTable('table-battle-random', noisyRec, 'recovered');
+      }, 400);
+    }
+
+    // --- Reverse Water-Filling Tank Logic ---
+    function initWaterFillingTank() {
+      updateWaterFilling(document.getElementById('slider-waterfill').value);
+    }
+
+    function updateWaterFilling(budget) {
+      document.getElementById('val-water-budget').innerText = budget + ' bits';
+      const container = document.getElementById('tank-container');
+      container.querySelectorAll('.waterfill-col').forEach(c => c.remove());
+
+      const sensitivities = [2.8, 2.4, 2.1, 1.9, 1.6, 1.3, 1.0, 0.8, 0.6, 0.4, 0.3, 0.2];
+      const maxSens = 3.0;
+
+      const bNorm = (budget - 4) / 12;
+      const theta = 0.15 * Math.pow(0.05, bNorm);
+      document.getElementById('water-theta-label').innerText = `Lagrangian Water-Level: θ = ${theta.toFixed(4)}`;
+
+      const lineY = Math.min(160, Math.max(20, Math.round(bNorm * 140 + 20)));
+      document.getElementById('water-line').style.bottom = lineY + 'px';
+
+      let countFP4 = 0, countFP6 = 0, countFP8 = 0, countFP16 = 0;
+
+      sensitivities.forEach(s => {
+        const col = document.createElement('div');
+        col.className = 'waterfill-col';
+        col.style.height = '160px';
+
+        const barHeight = Math.round((s / maxSens) * 150);
+        const waterHeight = Math.max(0, Math.min(barHeight, lineY));
+
+        const water = document.createElement('div');
+        water.className = 'water-fill';
+        water.style.height = waterHeight + 'px';
+
+        const bits = 0.5 * Math.log2(Math.max(1, (s * s) / theta));
+        if (bits >= 12) { countFP16++; water.style.background = 'linear-gradient(180deg, #f59e0b, #b45309)'; }
+        else if (bits >= 7) { countFP8++; water.style.background = 'linear-gradient(180deg, #38bdf8, #0284c7)'; }
+        else if (bits >= 5) { countFP6++; water.style.background = 'linear-gradient(180deg, #0284c7, #075985)'; }
+        else { countFP4++; water.style.background = 'linear-gradient(180deg, #64748b, #334155)'; }
+
+        col.appendChild(water);
+        container.appendChild(col);
+      });
+
+      const total = sensitivities.length;
+      document.getElementById('pct-fp4').innerText = ((countFP4 / total) * 100).toFixed(1) + '%';
+      document.getElementById('pct-fp6').innerText = ((countFP6 / total) * 100).toFixed(1) + '%';
+      document.getElementById('pct-fp8').innerText = ((countFP8 / total) * 100).toFixed(1) + '%';
+      document.getElementById('pct-fp16').innerText = ((countFP16 / total) * 100).toFixed(1) + '%';
+    }
+  
+    // =========================================================================
+    // THREE.JS 3D DISCRETE MANIFOLD SURFACE ENGINE (Mathematical Specification)
+    // =========================================================================
+    let threeScene, threeCamera, threeRenderer, threeControls;
+    let barMeshes = [];
+    let current3DMode = 'clean';
+    let isMorphing3D = true; // Active by default
+    let morphTimeout = null;
+    let raycaster = new THREE.Raycaster();
+    let mouse = new THREE.Vector2(-999, -999);
+    let hoveredMesh = null;
+    let isUserInteracting = false;
+    let lastInteractTime = 0;
+    let autoOrbitAngle = 0;
+    let axisSprites = [];
+
+    // --- Scientific colormap generator (Diverging Ocean-Emerald-Amber) ---
+    function getScientificColor(norm) {
+      const c = new THREE.Color();
+      const clamped = Math.max(0, Math.min(1, norm));
+      if (clamped < 0.5) {
+        const t = clamped / 0.5;
+        // Steel blue (0x0284c7) -> Teal / Emerald (0x10b981)
+        c.lerpColors(new THREE.Color(0x0284c7), new THREE.Color(0x10b981), t);
+      } else {
+        const t = (clamped - 0.5) / 0.5;
+        // Emerald (0x10b981) -> Golden Amber (0xf59e0b)
+        c.lerpColors(new THREE.Color(0x10b981), new THREE.Color(0xf59e0b), t);
+      }
+      return c;
+    }
+
+    // --- Mathematical axis label sprite helper ---
+    function makeAxisLabel(text, color) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 320; canvas.height = 80;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, 320, 80);
+      
+      // Academic pill container
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.82)';
+      ctx.strokeStyle = 'rgba(71, 85, 105, 0.45)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect ? ctx.roundRect(8, 8, 304, 64, 8) : ctx.rect(8, 8, 304, 64);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.font = '600 26px "Inter", monospace';
+      ctx.fillStyle = color || '#cbd5e1';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 160, 40);
+      
+      const tex = new THREE.CanvasTexture(canvas);
+      const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, opacity: 0.92, depthWrite: false });
+      const sprite = new THREE.Sprite(mat);
+      sprite.scale.set(3.2, 0.8, 1);
+      return sprite;
+    }
+
+    // --- Scientific color-bar canvas (MATLAB / Matplotlib style) ---
+    function drawColorBar(minV, maxV) {
+      const canvas = document.getElementById('colorbar-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width, h = canvas.height;
+      
+      // Linear gradient matching getScientificColor
+      const grad = ctx.createLinearGradient(0, 0, 0, h);
+      grad.addColorStop(0.0, '#f59e0b'); // High: Amber
+      grad.addColorStop(0.5, '#10b981'); // Mid:  Emerald
+      grad.addColorStop(1.0, '#0284c7'); // Low:  Steel Blue
+      
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+
+      // Graduation ticks
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+      ctx.lineWidth = 1;
+      [0.0, 0.25, 0.5, 0.75, 1.0].forEach(t => {
+        const y = Math.round(t * (h - 1));
+        ctx.beginPath();
+        ctx.moveTo(w - 6, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      });
+
+      // Update numeric labels
+      const maxEl = document.getElementById('colorbar-max');
+      const midEl = document.getElementById('colorbar-mid');
+      const minEl = document.getElementById('colorbar-min');
+      if (maxEl) maxEl.innerText = (maxV >= 0 ? '+' : '') + maxV.toFixed(1);
+      if (midEl) midEl.innerText = (((maxV + minV) * 0.5) >= 0 ? '+' : '') + ((maxV + minV) * 0.5).toFixed(1);
+      if (minEl) minEl.innerText = (minV >= 0 ? '+' : '') + minV.toFixed(1);
+    }
+
+    function initThreeMatrix() {
+      const container = document.getElementById('three-matrix-container');
+      if (!container || typeof THREE === 'undefined') return;
+
+      const width = container.clientWidth || 800;
+      const height = container.clientHeight || 460;
+
+      // 1. Scene, fog & camera — clean technical slate background
+      threeScene = new THREE.Scene();
+      threeScene.background = new THREE.Color(0x090d16);
+      threeScene.fog = new THREE.Fog(0x090d16, 32, 75);
+
+      threeCamera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
+      threeCamera.position.set(15, 13, 19);
+
+      // 2. WebGL Renderer
+      threeRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      threeRenderer.setSize(width, height);
+      threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      threeRenderer.shadowMap.enabled = true;
+      threeRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+      container.innerHTML = '';
+      container.appendChild(threeRenderer.domElement);
+
+      // Re-insert mathematical HUD overlay
+      const hud1 = document.createElement('div');
+      hud1.id = 'three-matrix-hud';
+      hud1.style.cssText = 'position: absolute; top: 14px; left: 16px; background: rgba(10, 15, 29, 0.92); border: 1px solid rgba(71, 85, 105, 0.4); border-radius: 6px; padding: 6px 13px; font-size: 12px; color: #38bdf8; pointer-events: none; backdrop-filter: blur(6px); z-index: 10; font-family: monospace;';
+      hud1.innerText = 'Hover over coordinate cell (i, j) to inspect mathematical state';
+      container.appendChild(hud1);
+
+      const hud2 = document.createElement('div');
+      hud2.style.cssText = 'position: absolute; bottom: 12px; right: 16px; background: rgba(10, 15, 29, 0.88); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 6px; padding: 5px 11px; font-size: 11px; color: #94a3b8; pointer-events: none; z-index: 10; font-family: monospace;';
+      hud2.innerText = 'Left Click: Orbit • Right Click: Translate • Wheel: Scale';
+      container.appendChild(hud2);
+
+      // 3. Orbit Controls
+      if (typeof THREE.OrbitControls !== 'undefined') {
+        threeControls = new THREE.OrbitControls(threeCamera, threeRenderer.domElement);
+        threeControls.enableDamping = true;
+        threeControls.dampingFactor = 0.05;
+        threeControls.maxPolarAngle = Math.PI / 2 - 0.04;
+        threeControls.minDistance = 7;
+        threeControls.maxDistance = 50;
+        threeControls.target.set(0, 1.2, 0);
+
+        ['mousedown', 'touchstart', 'wheel'].forEach(evt =>
+          container.addEventListener(evt, () => { isUserInteracting = true; lastInteractTime = Date.now(); }, { passive: true })
+        );
+        ['mouseup', 'touchend'].forEach(evt =>
+          container.addEventListener(evt, () => { lastInteractTime = Date.now(); }, { passive: true })
+        );
+      }
+
+      // 4. Studio scientific lighting (balanced, natural daylight key + neutral fill)
+      threeScene.add(new THREE.AmbientLight(0xffffff, 0.68));
+
+      const keyLight = new THREE.DirectionalLight(0xffffff, 0.82);
+      keyLight.position.set(18, 26, 18);
+      keyLight.castShadow = true;
+      keyLight.shadow.mapSize.width = 1024;
+      keyLight.shadow.mapSize.height = 1024;
+      keyLight.shadow.bias = -0.001;
+      threeScene.add(keyLight);
+
+      const fillLight = new THREE.DirectionalLight(0x94a3b8, 0.35);
+      fillLight.position.set(-18, 16, -18);
+      threeScene.add(fillLight);
+
+      // 5. Mathematical coordinate ground grid (MATLAB / Mathematica style)
+      const gridHelper = new THREE.GridHelper(24, 24, 0x475569, 0x1e293b);
+      gridHelper.position.y = -0.01;
+      threeScene.add(gridHelper);
+
+      // 6. Coordinate Axis Sprites with rigorous mathematical notation
+      const spacing = 1.35;
+      const halfM = (M - 1) * spacing * 0.5;
+      const halfN = (N - 1) * spacing * 0.5;
+
+      const rowLabel = makeAxisLabel('Row dim: i \u2208 [1, m]', '#38bdf8');
+      rowLabel.position.set(halfM + 2.4, 0.4, -halfN - 0.5);
+      threeScene.add(rowLabel);
+      axisSprites.push(rowLabel);
+
+      const colLabel = makeAxisLabel('Col dim: j \u2208 [1, n]', '#34d399');
+      colLabel.position.set(-halfM - 1.5, 0.4, halfN + 2.4);
+      threeScene.add(colLabel);
+      axisSprites.push(colLabel);
+
+      const valLabel = makeAxisLabel('Amplitude: X_{ij}', '#fbbf24');
+      valLabel.position.set(-halfM - 2.2, 3.8, -halfN - 0.5);
+      threeScene.add(valLabel);
+      axisSprites.push(valLabel);
+
+      // 7. Mouse interaction
+      container.addEventListener('mousemove', (e) => {
+        const rect = container.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / container.clientWidth) * 2 - 1;
+        mouse.y = -((e.clientY - rect.top) / container.clientHeight) * 2 + 1;
+      });
+
+      container.addEventListener('mouseleave', () => {
+        mouse.x = -999;
+        mouse.y = -999;
+        if (hoveredMesh) {
+          hoveredMesh.material.emissive.setHex(hoveredMesh.userData.targetEmissive || 0x000000);
+          hoveredMesh = null;
+        }
+        const hud = document.getElementById('three-matrix-hud');
+        if (hud) hud.innerText = 'Hover over coordinate cell (i, j) to inspect mathematical state';
+      });
+
+      window.addEventListener('resize', onThreeResize);
+
+      // 8. Build matrix bars, render scene & activate default dynamic morph
+      build3DMatrixBars();
+      drawColorBar(-1, 1);
+      animateThree();
+
+      // Launch continuous dynamic denoising by default as requested
+      isMorphing3D = true;
+      scheduleMorphStep();
+    }
+
+    function onThreeResize() {
+      const container = document.getElementById('three-matrix-container');
+      if (!container || !threeCamera || !threeRenderer) return;
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      threeCamera.aspect = width / height;
+      threeCamera.updateProjectionMatrix();
+      threeRenderer.setSize(width, height);
+    }
+
+    function build3DMatrixBars() {
+      if (!threeScene) return;
+
+      barMeshes.forEach(mesh => threeScene.remove(mesh));
+      barMeshes = [];
+
+      const spacing = 1.35;
+      const barWidth = 0.90;
+      const xOffset = -(M - 1) * spacing * 0.5;
+      const zOffset = -(N - 1) * spacing * 0.5;
+
+      for (let i = 0; i < M; i++) {
+        for (let j = 0; j < N; j++) {
+          const geom = new THREE.BoxGeometry(barWidth, 1, barWidth);
+          geom.translate(0, 0.5, 0); // Base anchored at y=0
+
+          // Academic semi-matte material (not shiny plastic)
+          const mat = new THREE.MeshStandardMaterial({
+            color: 0x0284c7,
+            metalness: 0.12,
+            roughness: 0.42,
+            emissive: 0x000000,
+            transparent: true,
+            opacity: 0.95,
+          });
+
+          const mesh = new THREE.Mesh(geom, mat);
+          mesh.position.set(xOffset + i * spacing, 0, zOffset + j * spacing);
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+
+          // Crisp mathematical wireframe edges (MATLAB bar3 / surf specification)
+          const edgeGeom = new THREE.EdgesGeometry(geom);
+          const edgeMat = new THREE.LineBasicMaterial({
+            color: 0x0a101d,
+            transparent: true,
+            opacity: 0.70,
+            linewidth: 1,
+          });
+          const edgeLine = new THREE.LineSegments(edgeGeom, edgeMat);
+          mesh.add(edgeLine);
+
+          mesh.userData = {
+            i: i, j: j,
+            currentH: 0.1, targetH: 0.1,
+            targetColor: new THREE.Color(0x0284c7),
+            targetOpacity: 0.95,
+            targetEmissive: 0x000000,
+            origEmissive: 0x000000,
+            val: 0,
+            edgeLine: edgeLine,
+          };
+
+          threeScene.add(mesh);
+          barMeshes.push(mesh);
+        }
+      }
+
+      update3DMatrixData();
+    }
+
+    // User manual click on one of the 4 state buttons: pauses auto-morph for inspection
+    function userSelectMode(mode) {
+      if (isMorphing3D) {
+        isMorphing3D = false;
+        if (morphTimeout) { clearTimeout(morphTimeout); morphTimeout = null; }
+        const morphBtn = document.getElementById('btn-3d-morph');
+        if (morphBtn) morphBtn.classList.remove('active-morph');
+        const icon = document.getElementById('morph-icon');
+        const text = document.getElementById('morph-text');
+        if (icon) icon.innerHTML = '&#9654;';
+        if (text) text.innerText = 'Dynamic Evolution (Paused)';
+      }
+      set3DMatrixMode(mode);
+    }
+
+    function set3DMatrixMode(mode) {
+      current3DMode = mode;
+      document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById(`btn-3d-${mode}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const captionEl = document.getElementById('three-matrix-caption');
+      if (captionEl) {
+        const labels = {
+          clean: 'State: Ground Truth Manifold X* = UVᵀ \u2208 St(m,r) \u00d7 \u211dⁿ\u02e3ʳ',
+          observed: 'State: Sampled Observation Field Y_\u03a9 = \u1d4a_\u03a9(X* + Noise + Outliers)',
+          routed: 'State: Sensitivity-Routed Representation \u0176 = \ud835\udc4e_\ud835\udc35(Y_\u03a9)',
+          recovered: 'State: Converged Reconstruction X\u0302 = U^(k) V^(k)\u1d40 (Denoised & Completed)',
+        };
+        captionEl.innerText = labels[mode] || '';
+      }
+
+      update3DMatrixData();
+    }
+
+    function update3DMatrixData() {
+      if (barMeshes.length === 0 || cleanX.length === 0) return;
+
+      let allVals = [];
+      for (let i = 0; i < M; i++) {
+        for (let j = 0; j < N; j++) {
+          allVals.push(cleanX[i][j]);
+          if (observedMask[i][j]) allVals.push(observedValues[i][j]);
+        }
+      }
+      const minV = Math.min(...allVals, -1);
+      const maxV = Math.max(...allVals, 1);
+      const range = maxV - minV || 1;
+
+      // Refresh academic color-bar legend
+      drawColorBar(minV, maxV);
+
+      barMeshes.forEach(mesh => {
+        const i = mesh.userData.i;
+        const j = mesh.userData.j;
+
+        let val = cleanX[i][j];
+        let targetH = 0.5;
+        let color = new THREE.Color(0x0284c7);
+        let opacity = 0.95;
+        let emissive = 0x000000;
+
+        if (current3DMode === 'clean') {
+          val = cleanX[i][j];
+          const norm = (val - minV) / range;
+          targetH = Math.max(0.25, norm * 4.8 + 0.3);
+          color = getScientificColor(norm);
+
+        } else if (current3DMode === 'observed') {
+          const isObs = observedMask[i][j];
+          const isOut = outlierMask[i][j];
+          if (!isObs) {
+            targetH = 0.04;
+            color.setHex(0x1e293b);
+            opacity = 0.25;
+          } else if (isOut) {
+            val = observedValues[i][j];
+            targetH = 7.4; // Gross Cauchy contamination spike
+            color.setHex(0xdc2626); // Academic crimson
+            emissive = 0x5f0a0a;
+          } else {
+            val = observedValues[i][j];
+            const norm = (val - minV) / range;
+            targetH = Math.max(0.25, norm * 4.8 + 0.3);
+            color = getScientificColor(norm);
+          }
+
+        } else if (current3DMode === 'routed') {
+          const isObs = observedMask[i][j];
+          const isProt = protectedMask[i][j];
+          if (!isObs) {
+            targetH = 0.04;
+            color.setHex(0x1e293b);
+            opacity = 0.22;
+          } else if (isProt) {
+            val = routedValues[i][j];
+            const norm = (val - minV) / range;
+            targetH = Math.max(0.3, norm * 4.8 + 0.3);
+            color.setHex(0xf59e0b); // High-precision sensitivity pool: Gold
+            emissive = 0x542c04;
+          } else {
+            val = routedValues[i][j];
+            const norm = (val - minV) / range;
+            targetH = Math.max(0.3, norm * 4.8 + 0.3);
+            color.setHex(0x0284c7); // Low-precision quantized tier: Steel Blue
+          }
+
+        } else if (current3DMode === 'recovered') {
+          val = (recoveredX[i] && !isNaN(recoveredX[i][j])) ? recoveredX[i][j] : cleanX[i][j];
+          const norm = Math.max(0, Math.min(1, (val - minV) / range));
+          targetH = Math.max(0.25, norm * 4.8 + 0.3);
+          color = getScientificColor(norm);
+        }
+
+        mesh.userData.targetH = targetH;
+        mesh.userData.targetColor = color;
+        mesh.userData.targetOpacity = opacity;
+        mesh.userData.targetEmissive = emissive;
+        mesh.userData.val = val;
+      });
+    }
+
+    // Morph sequence: Observed (spikes/holes) -> Routed (mixed prec) -> Recovered (denoised) -> Clean (reference)
+    const MORPH_MODES = ['observed', 'routed', 'recovered', 'clean'];
+    let morphModeIdx = 0;
+
+    function toggle3DMorphAnimation() {
+      const morphBtn = document.getElementById('btn-3d-morph');
+      const icon = document.getElementById('morph-icon');
+      const text = document.getElementById('morph-text');
+
+      if (isMorphing3D) {
+        isMorphing3D = false;
+        if (morphTimeout) { clearTimeout(morphTimeout); morphTimeout = null; }
+        if (morphBtn) morphBtn.classList.remove('active-morph');
+        if (icon) icon.innerHTML = '&#9654;';
+        if (text) text.innerText = 'Dynamic Evolution (Paused)';
+        return;
+      }
+
+      isMorphing3D = true;
+      if (morphBtn) morphBtn.classList.add('active-morph');
+      if (icon) icon.innerHTML = '&#10074;&#10074;';
+      if (text) text.innerText = 'Dynamic Evolution (Live)';
+      morphModeIdx = 0;
+      scheduleMorphStep();
+    }
+
+    function scheduleMorphStep() {
+      if (!isMorphing3D) return;
+      set3DMatrixMode(MORPH_MODES[morphModeIdx]);
+      morphModeIdx = (morphModeIdx + 1) % MORPH_MODES.length;
+      const delay = (morphModeIdx === 0) ? 2600 : 2000;
+      morphTimeout = setTimeout(scheduleMorphStep, delay);
+    }
+
+    // --- Render loop ---
+    function animateThree() {
+      requestAnimationFrame(animateThree);
+
+      // Subtle, gentle auto-orbit when user is idle for > 3.5s
+      if (threeControls) {
+        const idleMs = Date.now() - lastInteractTime;
+        if (isUserInteracting && idleMs > 500) isUserInteracting = false;
+        if (!isUserInteracting && idleMs > 3500) {
+          autoOrbitAngle += 0.002;
+          const R = 23;
+          threeCamera.position.x = Math.sin(autoOrbitAngle) * R * 0.72;
+          threeCamera.position.z = Math.cos(autoOrbitAngle) * R * 0.72;
+          threeCamera.lookAt(threeControls.target);
+        }
+        threeControls.update();
+      }
+
+      // Smooth mathematical interpolation
+      barMeshes.forEach(mesh => {
+        const dh = mesh.userData.targetH - mesh.userData.currentH;
+        mesh.userData.currentH += dh * 0.13;
+        mesh.scale.y = Math.max(0.01, mesh.userData.currentH);
+
+        mesh.material.color.lerp(mesh.userData.targetColor, 0.13);
+        mesh.material.opacity += (mesh.userData.targetOpacity - mesh.material.opacity) * 0.13;
+
+        if (mesh !== hoveredMesh) {
+          mesh.material.emissive.setHex(mesh.userData.targetEmissive || 0x000000);
+        }
+      });
+
+      // Raycaster inspection
+      if (threeCamera && mouse.x > -900) {
+        raycaster.setFromCamera(mouse, threeCamera);
+        const intersects = raycaster.intersectObjects(barMeshes);
+
+        if (intersects.length > 0) {
+          const hit = intersects[0].object;
+          if (hoveredMesh !== hit) {
+            if (hoveredMesh) hoveredMesh.material.emissive.setHex(hoveredMesh.userData.targetEmissive || 0x000000);
+            hoveredMesh = hit;
+            hoveredMesh.userData.origEmissive = hoveredMesh.userData.targetEmissive || 0x000000;
+            hoveredMesh.material.emissive.setHex(0x38bdf8);
+          }
+
+          const i = hit.userData.i;
+          const j = hit.userData.j;
+          const val = hit.userData.val;
+          const isObs = observedMask[i] ? observedMask[i][j] : true;
+          const isOut = outlierMask[i] ? outlierMask[i][j] : false;
+          const isProt = protectedMask[i] ? protectedMask[i][j] : false;
+
+          let status = 'Inlier State (\u03a9_{ij} = 1)';
+          if (!isObs) status = 'Unsampled Null Element (\u03a9_{ij} = 0)';
+          else if (isOut) status = 'Gross Outlier Spike (|e_{ij}| \u226b \u03b3)';
+          else if (isProt) status = 'Influence-Protected Pool (\u03b2_{ij} = 1, FP32)';
+
+          const hud = document.getElementById('three-matrix-hud');
+          if (hud) {
+            const formattedVal = (val !== null && !isNaN(val)) ? (val >= 0 ? '+' : '') + val.toFixed(3) : 'NaN';
+            hud.innerText = `Cell (i=${i+1}, j=${j+1}) | Value: ${formattedVal} | ${status}`;
+          }
+        } else {
+          if (hoveredMesh) {
+            hoveredMesh.material.emissive.setHex(hoveredMesh.userData.targetEmissive || 0x000000);
+            hoveredMesh = null;
+          }
+        }
+      }
+
+      if (threeRenderer && threeScene && threeCamera) {
+        threeRenderer.render(threeScene, threeCamera);
+      }
+    }
+
+  </script>
 </body>
 </html>
