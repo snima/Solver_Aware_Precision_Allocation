@@ -7,7 +7,7 @@ Master Reproducibility Runner: All Paper Tables & Figures in One Command
 Paper:
   "Storage Format Allocation and Arithmetic Precision in Robust Matrix Completion"
   Nima Sahraneshinsamani, José I. Aliaga, Sandra Catalán, José R. Herrero
-  (CMMSE 2026 / Journal of Computational and Applied Mathematics)
+  (Preprint / Under review)
 
 Usage:
   python3 reproduce_all.py                       # Run standard real-world traffic benchmark (~10s)

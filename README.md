@@ -9,7 +9,7 @@
 Official repository for the research paper:  
 **"Storage Format Allocation and Arithmetic Precision in Robust Matrix Completion"**  
 *Nima Sahraneshinsamani, José I. Aliaga, Sandra Catalán, and José R. Herrero*  
-*(CMMSE / Journal of Computational and Applied Mathematics)*
+*(Preprint / Under review)*
 
 ---
 
@@ -170,9 +170,8 @@ If you find this codebase or methodology useful in your research, please cite ou
 @article{sahraneshinsamani2026storage,
   title   = {Storage Format Allocation and Arithmetic Precision in Robust Matrix Completion},
   author  = {Sahraneshinsamani, Nima and Aliaga, Jos{\'e} I. and Catal{\'a}n, Sandra and Herrero, Jos{\'e} R.},
-  journal = {Journal of Computational and Applied Mathematics},
   year    = {2026},
-  note    = {Under review / In press}
+  note    = {Preprint / Under review}
 }
 ```
 

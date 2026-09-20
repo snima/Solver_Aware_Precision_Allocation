@@ -11,7 +11,7 @@ Authors:
 
 Paper:
     "Storage Format Allocation and Arithmetic Precision in Robust Matrix Completion"
-    Presented at CMMSE / Journal of Computational and Applied Mathematics.
+    (Preprint / Under review).
 
 ----------------------------------------------------------------------------------------------------
 Theoretical Summary & Intuition:

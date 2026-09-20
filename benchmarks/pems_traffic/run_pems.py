@@ -6,7 +6,7 @@ Caltrans PeMS08 Highway Traffic Benchmark Runner
 
 Reproduces Table 6, Section 5.2, and extended multi-week/full-scale evaluations from the paper:
 "Storage Format Allocation and Arithmetic Precision in Robust Matrix Completion"
-(CMMSE 2026 / Journal of Computational and Applied Mathematics).
+(Preprint / Under review).
 
 Physical Sensing Context:
   - Source: Caltrans Performance Measurement System (PeMS), District 8 (San Bernardino, CA).
